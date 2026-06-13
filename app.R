@@ -753,7 +753,7 @@ ui <- page_fluid(
             class = "detail-section",
             h3("Performance, interpretation, and limitations"),
             tags$ul(
-              tags$li("Model performance was strongest for mechanical ventilation, discharge disposition, and ICU admission."),
+              tags$li("Validation AUROCs ranged from 0.742 to 0.943 across modeled endpoints; the corrected 3-class discharge disposition model achieved 0.742 accuracy in held-out validation."),
               tags$li("Prolonged duration endpoints should be interpreted as secondary resource-intensity estimates."),
               tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, or clinician judgment."),
               tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a bootstrap, ensemble, or other formal uncertainty-estimation procedure is implemented and validated.")
