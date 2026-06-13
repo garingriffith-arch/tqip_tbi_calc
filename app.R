@@ -753,9 +753,9 @@ ui <- page_fluid(
             class = "detail-section",
             h3("Performance, interpretation, and limitations"),
             tags$ul(
-              tags$li("***"),
-              tags$li("***"),
-              tags$li("***"),
+              tags$li("Model performance was strongest for mechanical ventilation, discharge disposition, and ICU admission."),
+              tags$li("Prolonged duration endpoints should be interpreted as secondary resource-intensity estimates."),
+              tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, or clinician judgment."),
               tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a bootstrap, ensemble, or other formal uncertainty-estimation procedure is implemented and validated.")
             )
           )
