@@ -681,7 +681,7 @@ ui <- page_fluid(
             h2("Admission characteristics", class = "section-title"),
             accordion(
               id = "input_accordion",
-              open = c("Demographics", "Neurologic status"),
+              open = FALSE,
               input_group_ui("Demographics"),
               input_group_ui("Transfer and mechanism"),
               input_group_ui("Neurologic status"),
