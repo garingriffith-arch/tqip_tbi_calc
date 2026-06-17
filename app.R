@@ -535,6 +535,20 @@ ais_choices <- c(
   "6 - Maximal" = "6"
 )
 
+# Display labels for selected registry categories while preserving the
+# original model levels as the submitted values.
+choice_display_label <- function(variable, value) {
+  value <- as.character(value)
+  if (variable == "mechanism_clean" && value == "Transport/MVC") return("Transport-related injury")
+  value
+}
+
+labelled_choices <- function(variable, choices) {
+  choices <- choices[!is.na(choices) & choices != ""]
+  out <- stats::setNames(choices, vapply(choices, function(x) choice_display_label(variable, x), character(1)))
+  out
+}
+
 extracranial_severity_control <- function(id, label) {
   selectInput(
     inputId = paste0("ui__", id, "_severity"),
@@ -626,6 +640,10 @@ ui <- page_fluid(
         .header-title { margin: 0; font-weight: 800; font-size: clamp(1.9rem,3.3vw,3.0rem); }
         .header-subtitle { margin-bottom: 0; color: #526579; }
         .sticky-panel { position: sticky; top: 24px; }
+        .input-scroll { max-height: calc(100vh - 260px); overflow-y: auto; padding-right: 6px; margin-bottom: 12px; }
+        .input-scroll::-webkit-scrollbar { width: 8px; }
+        .input-scroll::-webkit-scrollbar-thumb { background: #c9d6e2; border-radius: 8px; }
+        .input-scroll::-webkit-scrollbar-track { background: #eef3f8; border-radius: 8px; }
         .section-title { font-weight: 800; margin-bottom: 14px; }
         .plot-title { font-weight: 800; color: #243447; margin: 12px 0 10px 0; font-size: 1.15rem; }
         .subsection-note { color: #526579; font-weight: 650; margin-top: -4px; margin-bottom: 16px; }
@@ -644,7 +662,7 @@ ui <- page_fluid(
         .detail-card li { color: #425466; margin-bottom: 0.48rem; line-height: 1.5; }
         .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 38px; }
         .detail-section { min-width: 0; }
-        @media (max-width:1199px) { .sticky-panel { position: static; } }
+        @media (max-width:1199px) { .sticky-panel { position: static; } .input-scroll { max-height: none; overflow-y: visible; padding-right: 0; } }
         @media (max-width:767px) { .app-container { padding: 18px 14px 28px 14px; } .header-grid, .slim-disp, .detail-grid { grid-template-columns: 1fr; } }
       ")
     )
@@ -679,17 +697,20 @@ ui <- page_fluid(
         card(
           card_body(
             h2("Admission characteristics", class = "section-title"),
-            accordion(
-              id = "input_accordion",
-              open = FALSE,
-              input_group_ui("Demographics"),
-              input_group_ui("Transfer and mechanism"),
-              input_group_ui("Neurologic status"),
-              input_group_ui("Vital signs and respiratory support"),
-              input_group_ui("Injury burden"),
-              input_group_ui("Comorbidities"),
-              input_group_ui("Intracranial injury pattern"),
-              extracranial_profile_ui()
+            div(
+              class = "input-scroll",
+              accordion(
+                id = "input_accordion",
+                open = FALSE,
+                input_group_ui("Demographics"),
+                input_group_ui("Transfer and mechanism"),
+                input_group_ui("Neurologic status"),
+                input_group_ui("Vital signs and respiratory support"),
+                input_group_ui("Injury burden"),
+                input_group_ui("Comorbidities"),
+                input_group_ui("Intracranial injury pattern"),
+                extracranial_profile_ui()
+              )
             ),
             actionButton("calc", "Calculate risk", class = "btn-primary w-100")
           )
@@ -753,10 +774,57 @@ ui <- page_fluid(
             class = "detail-section",
             h3("Performance, interpretation, and limitations"),
             tags$ul(
-              tags$li("Validation AUROCs ranged from 0.742 to 0.943 across modeled endpoints; the corrected 3-class discharge disposition model achieved 0.742 accuracy in held-out validation."),
+              tags$li("Model performance was strongest for mechanical ventilation, discharge disposition, and ICU admission."),
               tags$li("Prolonged duration endpoints should be interpreted as secondary resource-intensity estimates."),
               tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, or clinician judgment."),
               tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a bootstrap, ensemble, or other formal uncertainty-estimation procedure is implemented and validated.")
+            )
+          ),
+          
+          div(
+            class = "detail-section",
+            h3("Selected input definitions"),
+            tags$ul(
+              tags$li(
+                tags$strong("Transport-related injury: "),
+                "Registry-derived mechanism category based on ICD-10-CM transport external cause coding. ",
+                "This category is broader than motor vehicle collision alone."
+              ),
+              tags$li(
+                tags$strong("Other transport: "),
+                "Descriptive transport subgroup for ICD-10-CM V00-V19, V30-V39, and V80-V99 transport external cause code ranges."
+              ),
+              tags$li(
+                tags$strong("Other mechanism: "),
+                "Registry-defined residual mechanism category retained as a nonmissing model level."
+              ),
+              tags$li(
+                tags$strong("Other race: "),
+                "Registry-defined residual race category retained as a nonmissing model level."
+              ),
+              tags$li(
+                tags$strong("Multiple races: "),
+                "Assigned when more than one race code/category was recorded for a patient."
+              ),
+              tags$li(
+                tags$strong("Other insurance: "),
+                "Registry-defined residual payer category retained as a nonmissing model level."
+              ),
+              tags$li(
+                tags$strong("Other government insurance: "),
+                "Registry-defined government payer category retained as a nonmissing model level."
+              ),
+              tags$li(
+                tags$strong("Not billed: "),
+                "Registry-defined payer category retained as a nonmissing model level."
+              ),
+              tags$li(
+                tags$strong("Other intracranial injury: "),
+                "ICD-10-CM S06.8 and S06.9 traumatic intracranial injury code families, corresponding to other specified or unspecified traumatic intracranial injuries."
+              ),
+              tags$li(
+                "True missing, unknown, or not-recorded values were handled separately from retained registry-defined categories."
+              )
             )
           )
         )
