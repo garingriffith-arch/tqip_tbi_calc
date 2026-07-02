@@ -662,7 +662,25 @@ ui <- page_fluid(
         .detail-card li { color: #425466; margin-bottom: 0.48rem; line-height: 1.5; }
         .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 38px; }
         .detail-section { min-width: 0; }
+        .results-wrap { display: grid; gap: 18px; }
+        .result-section { border: 1px solid #e1eaf3; border-radius: 22px; padding: 16px; background: #ffffff; }
+        .result-section-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .result-section-title { margin: 0; font-weight: 850; color: #243447; font-size: 1.1rem; }
+        .result-section-note { color: #6b7a8c; font-size: 0.86rem; font-weight: 650; white-space: nowrap; }
+        .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .result-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .result-card { border: 1px solid #dbe8f5; background: #f8fbfe; border-radius: 18px; padding: 14px 14px 12px 14px; min-width: 0; }
+        .result-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .result-name { color: #425466; font-weight: 750; line-height: 1.22; min-width: 0; }
+        .result-percent { color: #243447; font-weight: 900; font-size: clamp(1.45rem, 3vw, 2.05rem); line-height: 1; white-space: nowrap; }
+        .result-bar { width: 100%; height: 13px; border-radius: 999px; background: #e7edf5; overflow: hidden; }
+        .result-fill { height: 100%; border-radius: 999px; }
+        .result-subtext { color: #6b7a8c; font-size: 0.82rem; margin-top: 9px; line-height: 1.35; }
+        .result-disposition .result-fill { background: #1f4e79; }
+        .result-acute .result-fill { background: #b45f06; }
+        .result-prolonged .result-fill { background: #2f7d32; }
         @media (max-width:1199px) { .sticky-panel { position: static; } .input-scroll { max-height: none; overflow-y: visible; padding-right: 0; } }
+        @media (max-width:991px) { .result-grid, .result-grid.two { grid-template-columns: 1fr; } .result-section-note { white-space: normal; } }
         @media (max-width:767px) { .app-container { padding: 18px 14px 28px 14px; } .header-grid, .slim-disp, .detail-grid { grid-template-columns: 1fr; } }
       ")
     )
@@ -721,7 +739,7 @@ ui <- page_fluid(
         card(
           card_body(
             h2("Predicted inpatient outcomes", class = "section-title"),
-            plotOutput("risk_plot", height = "600px"),
+            uiOutput("result_cards"),
             div(class = "note", "Disposition probabilities are mutually exclusive and sum to 100%. Other outcomes are independent binary predictions and should be interpreted separately.")
           )
         )
@@ -833,6 +851,52 @@ ui <- page_fluid(
   )
 )
 
+# ------------------------------------------------------------
+# Results display helpers
+# ------------------------------------------------------------
+
+fmt_prob_label <- function(p) {
+  p <- suppressWarnings(as.numeric(p))
+  if (!is.finite(p)) return("")
+  pct <- 100 * p
+  if (pct > 0 && pct < 0.1) return("<0.1%")
+  if (pct < 5 || pct > 95) return(paste0(formatC(pct, format = "f", digits = 1), "%"))
+  paste0(formatC(round(pct), format = "f", digits = 0), "%")
+}
+
+result_card <- function(name, probability, type_class, subtext = NULL) {
+  p <- suppressWarnings(as.numeric(probability))
+  if (!is.finite(p)) p <- 0
+  p <- max(0, min(1, p))
+  pct_width <- paste0(round(100 * p, 1), "%")
+
+  tags$div(
+    class = paste("result-card", type_class),
+    tags$div(
+      class = "result-card-top",
+      tags$div(class = "result-name", name),
+      tags$div(class = "result-percent", fmt_prob_label(p))
+    ),
+    tags$div(
+      class = "result-bar",
+      tags$div(class = "result-fill", style = paste0("width:", pct_width, ";"))
+    ),
+    if (!is.null(subtext)) tags$div(class = "result-subtext", subtext)
+  )
+}
+
+result_section <- function(title, note, cards, grid_class = "") {
+  tags$section(
+    class = "result-section",
+    tags$div(
+      class = "result-section-header",
+      tags$h3(class = "result-section-title", title),
+      tags$div(class = "result-section-note", note)
+    ),
+    tags$div(class = paste("result-grid", grid_class), cards)
+  )
+}
+
 server <- function(input, output, session) {
   observe({
     bounds <- list(
@@ -918,106 +982,70 @@ server <- function(input, output, session) {
     )
   })
   
-  output$risk_plot <- renderPlot({
+  output$result_cards <- renderUI({
     req(results())
-    
+
     disp <- copy(results()$discharge)
     preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
     disp[, ord := match(class, preferred)]
     disp[is.na(ord), ord := 99L]
-    disp <- disp[order(ord)]
-    
-    disp_plot <- data.table(
-      outcome = disp$class,
-      probability = disp$probability,
-      group = "Discharge disposition",
-      section_order = 1L,
-      within_order = seq_len(nrow(disp))
-    )
-    
-    bin <- copy(results()$binary)
-    bin[, outcome := c(
-      "ICU admission",
-      "Mechanical ventilation",
-      "Hospital LOS ≥20 days",
-      "ICU LOS ≥8 days, if ICU admitted",
-      "Ventilator duration ≥8 days, if ventilated"
-    )]
-    bin[, group := data.table::fifelse(
-      outcome %in% c("ICU admission", "Mechanical ventilation"),
-      "Acute utilization",
-      "Prolonged utilization"
-    )]
-    bin[, section_order := data.table::fifelse(group == "Acute utilization", 2L, 3L)]
-    bin[, within_order := seq_len(.N), by = group]
-    
-    d <- rbindlist(list(disp_plot, bin), fill = TRUE)
-    d[, group := factor(
-      group,
-      levels = c("Discharge disposition", "Acute utilization", "Prolonged utilization")
-    )]
-    d[, label := sprintf("%.1f%%", 100 * probability)]
-    d[, outcome_wrapped := stringr::str_wrap(outcome, width = 30)]
-    
-    # Preserve within-section order while allowing separate facet spacing.
-    d[, outcome_id := paste0(section_order, "_", sprintf("%02d", within_order), "_", outcome_wrapped)]
-    d[, outcome_id := factor(outcome_id, levels = rev(d$outcome_id))]
-    label_lookup <- setNames(d$outcome_wrapped, d$outcome_id)
-    
-    d[, label_x := pmin(probability + 0.035, 0.98)]
-    d[, hjust_val := data.table::fifelse(probability > 0.88, 1.05, -0.05)]
-    
-    ggplot(d, aes(x = probability, y = outcome_id, fill = group)) +
-      geom_col(width = 0.62) +
-      geom_text(
-        aes(x = label_x, label = label, hjust = hjust_val),
-        size = 4.2,
-        fontface = "bold",
-        color = "#243447"
-      ) +
-      facet_grid(
-        rows = vars(group),
-        scales = "free_y",
-        space = "free_y",
-        switch = "y"
-      ) +
-      scale_y_discrete(labels = label_lookup) +
-      scale_x_continuous(
-        labels = scales::percent_format(accuracy = 1),
-        limits = c(0, 1.03),
-        breaks = seq(0, 1, by = 0.25)
-      ) +
-      scale_fill_manual(
-        values = c(
-          "Discharge disposition" = "#1f4e79",
-          "Acute utilization" = "#b45f06",
-          "Prolonged utilization" = "#2f7d32"
-        )
-      ) +
-      labs(x = "Model-estimated probability", y = NULL) +
-      theme_minimal(base_size = 13) +
-      theme(
-        legend.position = "none",
-        strip.placement = "outside",
-        strip.text.y.left = element_text(
-          angle = 0,
-          color = "#243447",
-          face = "bold",
-          size = 11,
-          hjust = 0
-        ),
-        strip.background = element_rect(fill = "#edf4fb", color = "#dbe8f5"),
-        panel.spacing.y = unit(0.8, "lines"),
-        panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.grid.major.x = element_line(color = "#e7edf5", linewidth = 0.7),
-        axis.title = element_text(color = "#2f4257", face = "bold", size = 14),
-        axis.text = element_text(color = "#425466"),
-        plot.background = element_rect(fill = "#ffffff", color = NA),
-        panel.background = element_rect(fill = "#ffffff", color = NA),
-        plot.margin = margin(8, 12, 8, 4)
+    disp <- disp[order(ord, -probability)]
+
+    disp_cards <- lapply(seq_len(nrow(disp)), function(i) {
+      result_card(
+        name = disp$class[i],
+        probability = disp$probability[i],
+        type_class = "result-disposition"
       )
-  }, res = 120)
+    })
+
+    bin <- copy(results()$binary)
+    acute <- bin[outcome %in% c("ICU admission", "Mechanical ventilation")]
+    prolonged <- bin[!outcome %in% c("ICU admission", "Mechanical ventilation")]
+
+    acute_cards <- lapply(seq_len(nrow(acute)), function(i) {
+      result_card(
+        name = acute$outcome[i],
+        probability = acute$probability[i],
+        type_class = "result-acute"
+      )
+    })
+
+    prolonged_cards <- lapply(seq_len(nrow(prolonged)), function(i) {
+      subtitle <- switch(
+        prolonged$outcome[i],
+        "ICU LOS ≥8 days, if ICU admitted" = "Conditional on ICU admission",
+        "Ventilator duration ≥8 days, if ventilated" = "Conditional on mechanical ventilation",
+        NULL
+      )
+      result_card(
+        name = prolonged$outcome[i],
+        probability = prolonged$probability[i],
+        type_class = "result-prolonged",
+        subtext = subtitle
+      )
+    })
+
+    tags$div(
+      class = "results-wrap",
+      result_section(
+        title = "Discharge disposition",
+        note = "Mutually exclusive",
+        cards = disp_cards
+      ),
+      result_section(
+        title = "Acute utilization",
+        note = "Independent binary estimates",
+        cards = acute_cards,
+        grid_class = "two"
+      ),
+      result_section(
+        title = "Prolonged utilization",
+        note = "Independent or conditional estimates",
+        cards = prolonged_cards
+      )
+    )
+  })
 }
 
 shinyApp(ui, server)
