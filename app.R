@@ -1,15 +1,20 @@
 # ============================================================
 # TBI Resource Utilization Calculator
-# Clean clinician-facing app.R
-# Updated to include neurosurgical resource endpoints and
-# binary probability recalibration when calibration parameters
-# are present in model_bundle.rds.
+# Clinician-facing Shiny app with endpoint-specific Quick Mode
+#
+# Required data files in data/:
+#   - model_bundle.rds
+#   - predictor_metadata.rds
+#
+# Quick Mode uses the deployed/full model bundle. It does not require
+# separate reduced-model RDS files. It simply shows the endpoint-specific
+# high-yield inputs and sends all omitted predictors through the existing
+# default/reference-value pathway.
 # ============================================================
 
 suppressPackageStartupMessages({
   library(shiny)
   library(bslib)
-  library(ggplot2)
   library(data.table)
   library(Matrix)
   library(xgboost)
@@ -23,8 +28,11 @@ bundle <- readRDS(file.path("data", "model_bundle.rds"))
 meta_obj <- readRDS(file.path("data", "predictor_metadata.rds"))
 
 metadata <- as.data.table(meta_obj$metadata)
+for (nm in c("variable", "label", "group", "input_type", "model_type", "choices", "default", "min", "max")) {
+  if (!nm %in% names(metadata)) metadata[, (nm) := NA_character_]
+}
 predictors_full <- meta_obj$predictors_full
-predictors_no_resp <- meta_obj$predictors_no_resp
+predictors_no_resp <- meta_obj$predictors_no_resp %||% setdiff(predictors_full, "respiratoryassistance_clean")
 model_n <- meta_obj$model_n %||% NA_integer_
 model_years <- meta_obj$model_years %||% character(0)
 discharge_levels <- meta_obj$discharge_levels %||% c("Home/home health", "Post-acute facility", "Death/hospice")
@@ -32,12 +40,15 @@ discharge_levels <- meta_obj$discharge_levels %||% c("Home/home health", "Post-a
 input_id <- function(v) paste0("var__", v)
 
 safe_numeric <- function(x, default = 0) {
-  y <- suppressWarnings(as.numeric(x))
-  ifelse(is.finite(y), y, default)
+  if (is.null(x) || length(x) == 0) return(default)
+  y <- suppressWarnings(as.numeric(x[[1]]))
+  if (!is.finite(y)) return(default)
+  y
 }
 
 safe_int01 <- function(x) {
-  as.integer(as.character(x) %in% c("1", "Yes", "yes", "TRUE", "true", TRUE))
+  if (is.null(x) || length(x) == 0) return(0L)
+  as.integer(as.character(x[[1]]) %in% c("1", "Yes", "yes", "TRUE", "true", TRUE))
 }
 
 get_yesno <- function(input, v) {
@@ -46,7 +57,7 @@ get_yesno <- function(input, v) {
 
 get_ext_sev <- function(input, region) {
   val <- input[[paste0("ui__", region, "_severity")]]
-  if (is.null(val)) "none" else as.character(val)
+  if (is.null(val) || length(val) == 0) "none" else as.character(val[[1]])
 }
 
 ext_any <- function(input, region) {
@@ -285,7 +296,6 @@ metadata[variable %in% yesno_vars & input_type != "derived", `:=`(
   choices = "0||1"
 )]
 
-# Define input types and safe defaults.
 metadata[variable == "age", `:=`(input_type = "numeric", min = 18, max = 120, default = "65")]
 metadata[variable == "sbp_clean", `:=`(input_type = "numeric", min = 0, max = 300, default = "120")]
 metadata[variable == "pulse_clean", `:=`(input_type = "numeric", min = 0, max = 250, default = "80")]
@@ -308,17 +318,339 @@ metadata[variable %in% c("max_head_ais_clean", "max_extracranial_ais_clean"), `:
 
 metadata[, app_order := match(variable, visible_vars)]
 metadata[is.na(app_order), app_order := 9999L]
+metadata[is.na(group) & variable %in% visible_vars, group := "Other inputs"]
+metadata[is.na(label) | label == "", label := variable]
+
+# ------------------------------------------------------------
+# Endpoint-specific Quick Mode predictor sets
+# ------------------------------------------------------------
+
+quick_predictor_sets <- list(
+  icu_admission = c(
+    "iss_clean",
+    "dx_intracranial_hemorrhage_any",
+    "max_overall_ais_aug",
+    "gcs_total_aug",
+    "dx_multiple_intracranial_patterns",
+    "gcs_verbal_clean",
+    "dx_concussion",
+    "n_preexisting_conditions",
+    "n_total_ais_codes_aug",
+    "n_head_ais_codes",
+    "gcs_motor_clean",
+    "age",
+    "respiratoryassistance_clean",
+    "gcs_severity_aug",
+    "pupil_clean",
+    "dx_subarachnoid_hemorrhage",
+    "dx_spinal_cord_injury",
+    "max_extracranial_ais_clean",
+    "sbp_clean",
+    "pulse_clean",
+    "max_head_ais_clean",
+    "dx_cerebral_edema_traumatic",
+    "transfer_clean",
+    "n_extracranial_ais_codes",
+    "dx_epidural_hematoma",
+    "ais_spine_severe3",
+    "spo2_clean",
+    "gcs_eye_clean",
+    "rr_clean",
+    "mechanism_clean"
+  ),
+  mechanical_ventilation = c(
+    "gcs_total_aug",
+    "iss_clean",
+    "gcs_motor_clean",
+    "gcs_verbal_clean",
+    "n_total_ais_codes_aug",
+    "max_overall_ais_aug",
+    "age",
+    "pulse_clean",
+    "transfer_clean",
+    "dx_multiple_intracranial_patterns",
+    "dx_cerebral_edema_traumatic",
+    "sbp_clean",
+    "rr_clean",
+    "n_preexisting_conditions",
+    "spo2_clean",
+    "pupil_clean",
+    "dx_intracranial_hemorrhage_any",
+    "dx_concussion",
+    "mechanism_clean",
+    "dx_brain_compression_herniation"
+  ),
+  hlos_ge20 = c(
+    "iss_clean",
+    "gcs_total_aug",
+    "n_total_ais_codes_aug",
+    "age",
+    "gcs_verbal_clean",
+    "n_preexisting_conditions",
+    "pupil_clean",
+    "ais_severe_region_count",
+    "gcs_motor_clean",
+    "max_overall_ais_aug",
+    "dx_intracranial_hemorrhage_any",
+    "max_extracranial_ais_clean",
+    "dx_multiple_intracranial_patterns",
+    "race_clean",
+    "n_extracranial_ais_codes",
+    "mechanism_clean",
+    "insurance_clean",
+    "dx_diffuse_axonal_injury",
+    "max_head_ais_clean",
+    "dx_concussion",
+    "transfer_clean",
+    "ais_polyregion_3plus",
+    "ais_region_count",
+    "respiratoryassistance_clean",
+    "ethnicity_clean",
+    "gcs_eye_clean",
+    "sbp_clean",
+    "sex_clean",
+    "dx_focal_contusion_or_iph",
+    "dx_subdural_hematoma"
+  ),
+  icu_los_ge8 = c(
+    "gcs_total_aug",
+    "iss_clean",
+    "n_total_ais_codes_aug",
+    "gcs_motor_clean",
+    "age",
+    "pupil_clean",
+    "gcs_verbal_clean",
+    "max_extracranial_ais_clean",
+    "max_overall_ais_aug",
+    "dx_diffuse_axonal_injury",
+    "n_preexisting_conditions",
+    "max_head_ais_clean",
+    "dx_spinal_cord_injury",
+    "dx_multiple_intracranial_patterns",
+    "mechanism_clean",
+    "ais_severe_region_count",
+    "dx_intracranial_hemorrhage_any",
+    "insurance_clean",
+    "n_extracranial_ais_codes",
+    "dx_subarachnoid_hemorrhage",
+    "sex_clean",
+    "rr_clean",
+    "transfer_clean",
+    "dx_focal_contusion_or_iph",
+    "race_clean",
+    "spo2_clean",
+    "dx_concussion",
+    "dx_subdural_hematoma",
+    "sbp_clean",
+    "age_group_aug"
+  ),
+  vent_days_ge8 = c(
+    "iss_clean",
+    "age",
+    "pupil_clean",
+    "n_total_ais_codes_aug",
+    "dx_diffuse_axonal_injury",
+    "mechanism_clean",
+    "gcs_total_aug",
+    "max_overall_ais_aug",
+    "dx_multiple_intracranial_patterns",
+    "insurance_clean",
+    "ais_severe_region_count",
+    "sbp_clean",
+    "dx_cerebral_edema_traumatic",
+    "max_head_ais_clean",
+    "dx_subarachnoid_hemorrhage",
+    "n_preexisting_conditions",
+    "gcs_motor_clean",
+    "race_clean",
+    "dx_brain_compression_herniation",
+    "dx_epidural_hematoma"
+  ),
+  icp_monitor_evd_bolt = c(
+    "gcs_total_aug",
+    "max_head_ais_clean",
+    "gcs_motor_clean",
+    "iss_clean",
+    "n_head_ais_codes",
+    "critical_head_ais5_aug",
+    "dx_intracranial_hemorrhage_any",
+    "dx_cerebral_edema_traumatic",
+    "age",
+    "dx_concussion",
+    "severe_head_ais3_aug",
+    "dx_multiple_intracranial_patterns",
+    "n_total_ais_codes_aug",
+    "pupil_clean",
+    "gcs_verbal_clean",
+    "max_overall_ais_aug",
+    "dx_brain_compression_herniation",
+    "n_preexisting_conditions",
+    "mechanism_clean",
+    "dx_other_intracranial_injury",
+    "dx_subdural_hematoma",
+    "dx_subarachnoid_hemorrhage",
+    "dx_focal_contusion_or_iph",
+    "dx_vault_skull_fracture",
+    "dx_diffuse_axonal_injury",
+    "max_extracranial_ais_clean",
+    "dx_skull_fracture_any",
+    "dx_spinal_cord_injury",
+    "age_group_aug",
+    "severe_tbi_ais3_src_aug"
+  ),
+  craniotomy_craniectomy = c(
+    "max_head_ais_clean",
+    "critical_head_ais5_aug",
+    "severe_head_ais3_aug",
+    "gcs_total_aug",
+    "iss_clean",
+    "dx_subdural_hematoma",
+    "dx_epidural_hematoma",
+    "dx_cerebral_edema_traumatic",
+    "dx_vault_skull_fracture",
+    "dx_intracranial_hemorrhage_any",
+    "age",
+    "mechanism_clean",
+    "n_total_ais_codes_aug",
+    "severe_tbi_ais3_src_aug",
+    "pupil_clean",
+    "max_overall_ais_aug",
+    "dx_brain_compression_herniation",
+    "n_head_ais_codes",
+    "dx_skull_fracture_any",
+    "dx_focal_contusion_or_iph",
+    "dx_concussion",
+    "dx_diffuse_axonal_injury",
+    "insurance_clean",
+    "dx_multiple_intracranial_patterns",
+    "race_clean",
+    "sex_clean",
+    "dx_other_intracranial_injury",
+    "gcs_motor_clean",
+    "gcs_verbal_clean",
+    "gcs_eye_clean"
+  )
+)
+
+# Source visible variables needed when a high-yield predictor is derived.
+source_var_map <- list(
+  age_group_aug = c("age"),
+  gcs_severity_aug = c("gcs_total_aug"),
+  hypotension_sbp90_aug = c("sbp_clean"),
+  hypoxia_spo2_90_aug = c("spo2_clean"),
+  tachycardia_120_aug = c("pulse_clean"),
+  abnormal_rr_aug = c("rr_clean"),
+
+  dx_any_s06_intracranial = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
+                              "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
+                              "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury"),
+  dx_intracranial_hemorrhage_any = c("dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma", "dx_subarachnoid_hemorrhage"),
+  dx_multiple_intracranial_patterns = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
+                                        "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
+                                        "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
+                                        "dx_brain_compression_herniation"),
+
+  max_overall_ais_aug = c("max_head_ais_clean", "max_extracranial_ais_clean"),
+  severe_head_ais3_aug = c("max_head_ais_clean"),
+  critical_head_ais5_aug = c("max_head_ais_clean"),
+  severe_tbi_ais3_src_aug = c("max_head_ais_clean"),
+  severe_extracranial_ais3_aug = c("max_extracranial_ais_clean"),
+  severe_extracranial_ais3_src_aug = c("max_extracranial_ais_clean"),
+  any_extracranial_injury_aug = c("max_extracranial_ais_clean"),
+  isolated_tbi_derived_aug = c("max_extracranial_ais_clean"),
+
+  n_preexisting_conditions = c("bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker"),
+  n_head_ais_codes = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
+                       "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
+                       "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
+                       "dx_brain_compression_herniation", "dx_skull_fracture_any"),
+  n_extracranial_ais_codes = c("max_extracranial_ais_clean"),
+  n_total_ais_codes_aug = c("max_head_ais_clean", "max_extracranial_ais_clean",
+                            "dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
+                            "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
+                            "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
+                            "dx_brain_compression_herniation", "dx_skull_fracture_any"),
+
+  ais_region_count = c("max_head_ais_clean", "max_extracranial_ais_clean"),
+  ais_severe_region_count = c("max_head_ais_clean", "max_extracranial_ais_clean"),
+  ais_polyregion_2plus = c("max_head_ais_clean", "max_extracranial_ais_clean"),
+  ais_polyregion_3plus = c("max_head_ais_clean", "max_extracranial_ais_clean"),
+  ais_severe_polyregion_2plus = c("max_head_ais_clean", "max_extracranial_ais_clean")
+)
+
+extracranial_derived_prefixes <- c(
+  "ais_face", "ais_thorax", "ais_abdomen", "ais_spine", "ais_upper_ext", "ais_lower_ext", "ais_external",
+  "dx_facial", "dx_spinal", "dx_thoracic", "dx_abdominal", "dx_upper", "dx_lower",
+  "dx_polyregion"
+)
+
+source_vars_for_predictors <- function(predictors) {
+  src <- character(0)
+  for (v in predictors) {
+    if (v %in% visible_vars) src <- c(src, v)
+    if (v %in% names(source_var_map)) src <- c(src, source_var_map[[v]])
+    if (any(startsWith(v, extracranial_derived_prefixes))) {
+      src <- c(src, "max_extracranial_ais_clean")
+    }
+  }
+  unique(src[src %in% visible_vars])
+}
+
+clinical_core_visible <- c(
+  "age", "transfer_clean", "mechanism_clean",
+  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "gcs_total_aug", "pupil_clean",
+  "sbp_clean", "pulse_clean", "rr_clean", "spo2_clean",
+  "iss_clean", "max_head_ais_clean", "max_extracranial_ais_clean",
+  "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury", "dx_focal_contusion_or_iph",
+  "dx_epidural_hematoma", "dx_subdural_hematoma", "dx_subarachnoid_hemorrhage",
+  "dx_brain_compression_herniation", "dx_skull_fracture_any"
+)
+
+endpoint_visible_vars <- function(endpoint, mode = c("quick", "full")) {
+  mode <- match.arg(mode)
+  if (mode == "full" || endpoint == "all") return(visible_vars)
+
+  if (endpoint == "discharge") {
+    return(unique(c(clinical_core_visible, "sex_clean", "race_clean", "ethnicity_clean", "insurance_clean")))
+  }
+
+  preds <- quick_predictor_sets[[endpoint]]
+  if (is.null(preds)) return(visible_vars)
+
+  vars <- unique(c(source_vars_for_predictors(preds), "age", "gcs_total_aug"))
+  vars <- vars[vars %in% visible_vars]
+  vars[order(match(vars, visible_vars))]
+}
+
+needs_extracranial_profile <- function(endpoint, mode = c("quick", "full")) {
+  mode <- match.arg(mode)
+  if (mode == "full" || endpoint == "all") return(TRUE)
+  preds <- quick_predictor_sets[[endpoint]]
+  if (is.null(preds)) return(FALSE)
+  any(grepl("ais_|extracranial|dx_polyregion|dx_facial|dx_spinal|dx_thoracic|dx_abdominal|dx_upper|dx_lower", preds))
+}
 
 # ------------------------------------------------------------
 # Derived values
 # ------------------------------------------------------------
 
+split_choices <- function(x, fallback = c("0", "1")) {
+  out <- unlist(strsplit(as.character(x), "\\|\\|"))
+  out <- out[!is.na(out) & nzchar(out)]
+  if (length(out) == 0) fallback else out
+}
+
+first_or <- function(x, fallback) {
+  if (length(x) == 0 || is.na(x[1]) || !nzchar(as.character(x[1]))) return(fallback)
+  x[1]
+}
+
 derive_age_group <- function(age, choices) {
   age <- safe_numeric(age, NA)
   if (!is.finite(age)) return(choices[1])
-  if (age < 40) return(choices[grepl("18|39|young", choices, ignore.case = TRUE)][1])
-  if (age < 65) return(choices[grepl("40|64|adult", choices, ignore.case = TRUE)][1])
-  if (age < 75) return(choices[grepl("65|74", choices, ignore.case = TRUE)][1])
+  if (age < 40) return(first_or(choices[grepl("18|39|young", choices, ignore.case = TRUE)], choices[1]))
+  if (age < 65) return(first_or(choices[grepl("40|64|adult", choices, ignore.case = TRUE)], choices[1]))
+  if (age < 75) return(first_or(choices[grepl("65|74", choices, ignore.case = TRUE)], choices[1]))
   hit <- choices[grepl("75|80|elder|older", choices, ignore.case = TRUE)][1]
   ifelse(is.na(hit), choices[length(choices)], hit)
 }
@@ -326,15 +658,14 @@ derive_age_group <- function(age, choices) {
 derive_gcs_severity <- function(gcs, choices) {
   gcs <- safe_numeric(gcs, NA)
   if (!is.finite(gcs)) return(choices[1])
-  if (gcs >= 13) return(choices[grepl("mild|13", choices, ignore.case = TRUE)][1])
-  if (gcs >= 9) return(choices[grepl("moderate|9", choices, ignore.case = TRUE)][1])
+  if (gcs >= 13) return(first_or(choices[grepl("mild|13", choices, ignore.case = TRUE)], choices[1]))
+  if (gcs >= 9) return(first_or(choices[grepl("moderate|9", choices, ignore.case = TRUE)], choices[1]))
   hit <- choices[grepl("severe|3", choices, ignore.case = TRUE)][1]
   ifelse(is.na(hit), choices[1], hit)
 }
 
 derived_value <- function(v, row, input) {
-  choices <- strsplit(as.character(row$choices), "\\|\\|")[[1]]
-  if (length(choices) == 0 || all(is.na(choices))) choices <- c("0", "1")
+  choices <- split_choices(row$choices, c("0", "1"))
 
   if (v == "age_group_aug") return(derive_age_group(input[[input_id("age")]], choices))
   if (v == "gcs_severity_aug") return(derive_gcs_severity(input[[input_id("gcs_total_aug")]], choices))
@@ -474,25 +805,27 @@ make_one_row <- function(input, predictors) {
     }
 
     val <- input[[input_id(v)]]
+    input_type <- as.character(row$input_type %||% "")
+    model_type <- as.character(row$model_type %||% "")
 
-    if (row$input_type == "derived") {
+    if (input_type == "derived") {
       val <- derived_value(v, row, input)
     }
 
-    if (row$model_type %in% c("numeric", "numeric_binary")) {
+    if (model_type %in% c("numeric", "numeric_binary")) {
       out[[v]] <- safe_numeric(val, safe_numeric(row$default, 0))
-    } else if (row$input_type == "yesno") {
-      choices <- strsplit(as.character(row$choices), "\\|\\|")[[1]]
-      if (length(choices) == 0 || all(is.na(choices))) choices <- c("0", "1")
-      val <- as.character(ifelse(val %in% c("1", "Yes", "yes", TRUE), "1", "0"))
+    } else if (input_type == "yesno") {
+      choices <- split_choices(row$choices, c("0", "1"))
+      val <- as.character(ifelse(safe_int01(val) == 1L, "1", "0"))
       out[[v]] <- factor(val, levels = choices)
-    } else if (row$input_type %in% c("gcs_select", "ais_severity")) {
+    } else if (input_type %in% c("gcs_select", "ais_severity")) {
       out[[v]] <- safe_numeric(val, safe_numeric(row$default, 0))
     } else {
-      choices <- strsplit(as.character(row$choices), "\\|\\|")[[1]]
-      if (length(choices) == 0 || all(is.na(choices))) choices <- as.character(row$default)
-      if (is.null(val) || !as.character(val) %in% choices) val <- row$default
-      out[[v]] <- factor(as.character(val), levels = choices)
+      choices <- split_choices(row$choices, as.character(row$default))
+      default <- as.character(row$default)
+      if (is.na(default) || !nzchar(default) || !default %in% choices) default <- choices[1]
+      if (is.null(val) || length(val) == 0 || !as.character(val[[1]]) %in% choices) val <- default
+      out[[v]] <- factor(as.character(val[[1]]), levels = choices)
     }
   }
 
@@ -501,7 +834,7 @@ make_one_row <- function(input, predictors) {
 
 align_matrix <- function(newdata, predictors, feature_names) {
   f <- as.formula(paste("~", paste(predictors, collapse = " + "), "- 1"))
-  mm <- Matrix::sparse.model.matrix(f, data = newdata)
+  mm <- Matrix::sparse.model.matrix(f, data = newdata, na.action = stats::na.pass)
 
   missing_cols <- setdiff(feature_names, colnames(mm))
   if (length(missing_cols) > 0) {
@@ -618,6 +951,11 @@ binary_endpoint_spec <- data.table(
   )
 )
 
+endpoint_choices <- c(
+  "Discharge disposition (3-class)" = "discharge",
+  stats::setNames(binary_endpoint_spec$endpoint, binary_endpoint_spec$outcome)
+)
+
 # ------------------------------------------------------------
 # UI controls
 # ------------------------------------------------------------
@@ -663,11 +1001,12 @@ extracranial_severity_control <- function(id, label) {
 }
 
 make_input_control <- function(row) {
-  if (row$input_type == "derived") return(NULL)
+  input_type <- as.character(row$input_type %||% "")
+  if (input_type == "derived") return(NULL)
 
   id <- input_id(row$variable)
 
-  if (row$input_type == "numeric") {
+  if (input_type == "numeric") {
     numericInput(
       inputId = id,
       label = row$label,
@@ -676,7 +1015,7 @@ make_input_control <- function(row) {
       max = safe_numeric(row$max, NA),
       step = 1
     )
-  } else if (row$input_type == "gcs_select") {
+  } else if (input_type == "gcs_select") {
     choices <- switch(
       row$variable,
       gcs_eye_clean = gcs_eye_choices,
@@ -686,21 +1025,23 @@ make_input_control <- function(row) {
       gcs_total_choices
     )
     selectInput(id, row$label, choices = choices, selected = as.character(row$default), selectize = FALSE)
-  } else if (row$input_type == "ais_severity") {
+  } else if (input_type == "ais_severity") {
     selectInput(id, row$label, choices = ais_choices, selected = as.character(row$default), selectize = FALSE)
-  } else if (row$input_type == "yesno") {
+  } else if (input_type == "yesno") {
     selectInput(id, row$label, choices = c("No" = "0", "Yes" = "1"), selected = "0", selectize = FALSE)
-  } else if (row$input_type == "count_select") {
-    choices <- strsplit(as.character(row$choices), "\\|\\|")[[1]]
+  } else if (input_type == "count_select") {
+    choices <- split_choices(row$choices, as.character(row$default))
     selectInput(id, row$label, choices = choices, selected = row$default, selectize = FALSE)
   } else {
-    choices <- strsplit(as.character(row$choices), "\\|\\|")[[1]]
-    selectInput(id, row$label, choices = labelled_choices(row$variable, choices), selected = row$default, selectize = FALSE)
+    choices <- split_choices(row$choices, as.character(row$default))
+    default <- as.character(row$default)
+    if (is.na(default) || !nzchar(default) || !default %in% choices) default <- choices[1]
+    selectInput(id, row$label, choices = labelled_choices(row$variable, choices), selected = default, selectize = FALSE)
   }
 }
 
-input_group_ui <- function(group_name) {
-  rows <- metadata[group == group_name & input_type != "derived" & variable %in% visible_vars][order(app_order)]
+input_group_ui <- function(group_name, allowed_vars = visible_vars) {
+  rows <- metadata[group == group_name & input_type != "derived" & variable %in% allowed_vars][order(app_order)]
   if (nrow(rows) == 0) return(NULL)
 
   accordion_panel(
@@ -743,33 +1084,30 @@ ui <- page_fluid(
         .header-title { margin: 0; font-weight: 800; font-size: clamp(1.9rem,3.3vw,3.0rem); }
         .header-subtitle { margin-bottom: 0; color: #526579; }
         .sticky-panel { position: sticky; top: 24px; }
-        .input-scroll { max-height: calc(100vh - 260px); overflow-y: auto; padding-right: 6px; margin-bottom: 12px; }
+        .input-scroll { max-height: calc(100vh - 330px); overflow-y: auto; padding-right: 6px; margin-bottom: 12px; }
         .input-scroll::-webkit-scrollbar { width: 8px; }
         .input-scroll::-webkit-scrollbar-thumb { background: #c9d6e2; border-radius: 8px; }
         .input-scroll::-webkit-scrollbar-track { background: #eef3f8; border-radius: 8px; }
         .section-title { font-weight: 800; margin-bottom: 14px; }
-        .subsection-note { color: #526579; font-weight: 650; margin-top: -4px; margin-bottom: 16px; }
+        .subsection-note { color: #526579; font-weight: 650; margin-top: -4px; margin-bottom: 16px; line-height: 1.45; }
         .form-label { font-weight: 650; }
         .form-control, .form-select { border-radius: 14px !important; min-height: 42px; }
         .btn-primary { border-radius: 14px !important; font-weight: 750; min-height: 46px; margin-top: 6px; }
-        .slim-disp { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
-        .disp-cell { background: #edf4fb; border-radius: 16px; padding: 10px 12px; border: 1px solid #dbe8f5; }
-        .disp-label { font-size: 0.82rem; color: #526579; font-weight: 700; }
-        .disp-value { font-size: 1.35rem; color: #1f4e79; font-weight: 850; }
+        .mode-box { background: #edf4fb; border: 1px solid #dbe8f5; border-radius: 18px; padding: 14px 14px 2px 14px; margin-bottom: 14px; }
+        .quick-note { font-size: 0.88rem; color: #526579; line-height: 1.42; margin-top: -4px; margin-bottom: 12px; }
         .block-gap { height: 18px; }
-        .note { font-size: 0.9rem; color: #6b7a8c; margin-top: 10px; }
+        .note { font-size: 0.9rem; color: #6b7a8c; margin-top: 10px; line-height: 1.45; }
         .detail-card h3 { font-size: 1.08rem; font-weight: 750; color: #243447; margin-top: 0; margin-bottom: 0.8rem; }
         .detail-card ul { margin-bottom: 0; padding-left: 1.15rem; }
         .detail-card li { color: #425466; margin-bottom: 0.48rem; line-height: 1.5; }
         .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 38px; }
-        .detail-section { min-width: 0; }
-        .results-wrap { display: grid; gap: 18px; }
-        .result-section { border: 1px solid #e1eaf3; border-radius: 22px; padding: 16px; background: #ffffff; }
+        .result-section { border: 1px solid #e1eaf3; border-radius: 22px; padding: 16px; background: #ffffff; margin-bottom: 14px; }
         .result-section-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         .result-section-title { margin: 0; font-weight: 850; color: #243447; font-size: 1.1rem; }
         .result-section-note { color: #6b7a8c; font-size: 0.86rem; font-weight: 650; white-space: nowrap; }
         .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
         .result-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .result-grid.one { grid-template-columns: minmax(0, 1fr); }
         .result-card { border: 1px solid #dbe8f5; background: #f8fbfe; border-radius: 18px; padding: 14px 14px 12px 14px; min-width: 0; }
         .result-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         .result-name { color: #425466; font-weight: 750; line-height: 1.22; min-width: 0; }
@@ -783,7 +1121,7 @@ ui <- page_fluid(
         .result-prolonged .result-fill { background: #2f7d32; }
         @media (max-width:1199px) { .sticky-panel { position: static; } .input-scroll { max-height: none; overflow-y: visible; padding-right: 0; } }
         @media (max-width:991px) { .result-grid, .result-grid.two { grid-template-columns: 1fr; } .result-section-note { white-space: normal; } }
-        @media (max-width:767px) { .app-container { padding: 18px 14px 28px 14px; } .header-grid, .slim-disp, .detail-grid { grid-template-columns: 1fr; } }
+        @media (max-width:767px) { .app-container { padding: 18px 14px 28px 14px; } .header-grid, .detail-grid { grid-template-columns: 1fr; } }
       ")
     )
   ),
@@ -816,21 +1154,28 @@ ui <- page_fluid(
         class = "sticky-panel",
         card(
           card_body(
+            h2("Calculator mode", class = "section-title"),
+            div(
+              class = "mode-box",
+              radioButtons(
+                "calc_mode",
+                label = NULL,
+                choices = c("Quick endpoint mode" = "quick", "Full calculator" = "full"),
+                selected = "quick",
+                inline = FALSE
+              ),
+              conditionalPanel(
+                condition = "input.calc_mode == 'quick'",
+                selectInput("quick_endpoint", "Endpoint of interest", choices = endpoint_choices, selected = "craniotomy_craniectomy", selectize = FALSE),
+                div(class = "quick-note", "Quick mode shows only endpoint-specific high-yield inputs. Omitted predictors are set to the calculator's default/reference values and the deployed full model is used for prediction.")
+              )
+            ),
+
             h2("Admission characteristics", class = "section-title"),
+            div(class = "subsection-note", uiOutput("input_mode_note")),
             div(
               class = "input-scroll",
-              accordion(
-                id = "input_accordion",
-                open = FALSE,
-                input_group_ui("Demographics"),
-                input_group_ui("Transfer and mechanism"),
-                input_group_ui("Neurologic status"),
-                input_group_ui("Vital signs and respiratory support"),
-                input_group_ui("Injury burden"),
-                input_group_ui("Comorbidities"),
-                input_group_ui("Intracranial injury pattern"),
-                extracranial_profile_ui()
-              )
+              uiOutput("dynamic_inputs")
             ),
             actionButton("calc", "Calculate risk", class = "btn-primary w-100")
           )
@@ -842,7 +1187,7 @@ ui <- page_fluid(
           card_body(
             h2("Predicted inpatient outcomes", class = "section-title"),
             uiOutput("result_cards"),
-            div(class = "note", "Disposition probabilities are mutually exclusive and sum to 100%. Other outcomes are independent binary predictions and should be interpreted separately. Binary probabilities use logistic recalibration when calibration parameters are present in the model bundle.")
+            div(class = "note", uiOutput("result_note"))
           )
         )
       )
@@ -858,7 +1203,6 @@ ui <- page_fluid(
           class = "detail-grid",
 
           div(
-            class = "detail-section",
             h3("Model cohort and intended use"),
             tags$ul(
               tags$li(if (is.na(model_n)) "Model cohort: adult TBI modeling cohort." else paste0("Model cohort: n = ", format(model_n, big.mark = ","), " patients.")),
@@ -869,53 +1213,31 @@ ui <- page_fluid(
           ),
 
           div(
-            class = "detail-section",
-            h3("Cohort and predictors"),
+            h3("Quick Mode"),
             tags$ul(
-              tags$li("Data source: American College of Surgeons Trauma Quality Improvement Program (ACS-TQIP)."),
-              tags$li("Study population: adult trauma patients with traumatic brain injury, defined using ICD-10 traumatic intracranial injury diagnosis codes (S06*)."),
-              tags$li("Predictors include demographics, transfer/mechanism, Glasgow Coma Scale components, pupillary response, vital signs, respiratory assistance, ISS, AIS-derived injury severity, selected intracranial injury patterns, major extracranial injury patterns, and comorbidities."),
-              tags$li("Several registry-style predictors are derived in the background from clinician-facing inputs to keep the calculator usable at the bedside.")
+              tags$li("Quick Mode begins with the endpoint of interest and displays a streamlined input set for that endpoint."),
+              tags$li("The deployed full model remains the prediction engine; hidden inputs are assigned default/reference values."),
+              tags$li("For comprehensive risk estimation across all endpoints, use Full calculator mode.")
             )
           ),
 
           div(
-            class = "detail-section",
             h3("Outcomes"),
             tags$ul(
               tags$li("Discharge disposition probabilities: home/home health, post-acute facility, and death/hospice."),
               tags$li("Acute utilization outcomes: ICU admission and mechanical ventilation."),
               tags$li("Neurosurgical resource-utilization outcomes: ICP monitor/EVD/BOLT placement and craniotomy/craniectomy."),
-              tags$li("Prolonged utilization outcomes: hospital length of stay ≥20 days, ICU length of stay ≥8 days among ICU patients, and ventilator duration ≥8 days among ventilated patients."),
-              tags$li("Conditional outcomes should be interpreted within the relevant population, such as ICU LOS among patients admitted to the ICU.")
+              tags$li("Prolonged utilization outcomes: hospital length of stay ≥20 days, ICU length of stay ≥8 days among ICU patients, and ventilator duration ≥8 days among ventilated patients.")
             )
           ),
 
           div(
-            class = "detail-section",
-            h3("Performance, interpretation, and limitations"),
+            h3("Interpretation and limitations"),
             tags$ul(
-              tags$li("Model performance was strongest for mechanical ventilation, discharge disposition, ICP monitor/EVD/BOLT placement, and craniotomy/craniectomy."),
               tags$li("Displayed binary probabilities are recalibrated when calibration parameters are available in the model bundle."),
-              tags$li("Prolonged duration endpoints should be interpreted as secondary resource-intensity estimates."),
-              tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, or clinician judgment."),
-              tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a bootstrap, ensemble, or other formal uncertainty-estimation procedure is implemented and validated.")
-            )
-          ),
-
-          div(
-            class = "detail-section",
-            h3("Selected input definitions"),
-            tags$ul(
-              tags$li(tags$strong("Transport-related injury: "), "Registry-derived mechanism category based on ICD-10-CM transport external cause coding. This category is broader than motor vehicle collision alone."),
-              tags$li(tags$strong("Other mechanism: "), "Registry-defined residual mechanism category retained as a nonmissing model level."),
-              tags$li(tags$strong("Other race: "), "Registry-defined residual race category retained as a nonmissing model level."),
-              tags$li(tags$strong("Multiple races: "), "Assigned when more than one race code/category was recorded for a patient."),
-              tags$li(tags$strong("Other insurance: "), "Registry-defined residual payer category retained as a nonmissing model level."),
-              tags$li(tags$strong("Other government insurance: "), "Registry-defined government payer category retained as a nonmissing model level."),
-              tags$li(tags$strong("Not billed: "), "Registry-defined payer category retained as a nonmissing model level."),
-              tags$li(tags$strong("Other intracranial injury: "), "ICD-10-CM S06.8 and S06.9 traumatic intracranial injury code families, corresponding to other specified or unspecified traumatic intracranial injuries."),
-              tags$li("True missing, unknown, or not-recorded values were handled separately from retained registry-defined categories.")
+              tags$li("Conditional outcomes should be interpreted within the relevant population, such as ICU LOS among patients admitted to the ICU."),
+              tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, procedural indication, unmet need, or clinician judgment."),
+              tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a formal uncertainty-estimation procedure is implemented and validated.")
             )
           )
         )
@@ -975,6 +1297,64 @@ result_section <- function(title, note, cards, grid_class = "") {
 # ------------------------------------------------------------
 
 server <- function(input, output, session) {
+  selected_mode <- reactive({
+    mode <- input$calc_mode %||% "quick"
+    if (!mode %in% c("quick", "full")) "quick" else mode
+  })
+
+  selected_endpoint <- reactive({
+    ep <- input$quick_endpoint %||% "craniotomy_craniectomy"
+    if (!ep %in% c("discharge", binary_endpoint_spec$endpoint)) "craniotomy_craniectomy" else ep
+  })
+
+  current_allowed_vars <- reactive({
+    endpoint_visible_vars(
+      endpoint = if (selected_mode() == "full") "all" else selected_endpoint(),
+      mode = selected_mode()
+    )
+  })
+
+  output$input_mode_note <- renderUI({
+    if (selected_mode() == "full") {
+      tags$span("Full calculator mode displays all clinician-facing inputs and returns all model outputs.")
+    } else {
+      ep <- selected_endpoint()
+      label <- if (ep == "discharge") "Discharge disposition" else binary_endpoint_spec[endpoint == ep]$outcome[1]
+      n_inputs <- length(current_allowed_vars())
+      tags$span(paste0("Quick Mode for ", label, ": ", n_inputs, " focused input fields shown; other predictors use defaults/reference values."))
+    }
+  })
+
+  output$dynamic_inputs <- renderUI({
+    allowed <- current_allowed_vars()
+    mode <- selected_mode()
+    ep <- if (mode == "full") "all" else selected_endpoint()
+
+    panels <- list(
+      input_group_ui("Demographics", allowed),
+      input_group_ui("Transfer and mechanism", allowed),
+      input_group_ui("Neurologic status", allowed),
+      input_group_ui("Vital signs and respiratory support", allowed),
+      input_group_ui("Injury burden", allowed),
+      input_group_ui("Comorbidities", allowed),
+      input_group_ui("Intracranial injury pattern", allowed)
+    )
+
+    if (needs_extracranial_profile(ep, mode)) {
+      panels <- c(panels, list(extracranial_profile_ui()))
+    }
+
+    panels <- panels[!vapply(panels, is.null, logical(1))]
+
+    do.call(
+      accordion,
+      c(
+        list(id = "input_accordion", open = FALSE),
+        panels
+      )
+    )
+  })
+
   observe({
     bounds <- list(
       age = c(18, 120),
@@ -988,7 +1368,7 @@ server <- function(input, output, session) {
     for (v in names(bounds)) {
       id <- input_id(v)
       val <- suppressWarnings(as.numeric(input[[id]]))
-      if (is.finite(val)) {
+      if (length(val) > 0 && is.finite(val)) {
         lo <- bounds[[v]][1]
         hi <- bounds[[v]][2]
         clipped <- min(max(val, lo), hi)
@@ -1013,50 +1393,99 @@ server <- function(input, output, session) {
   results <- eventReactive(
     input$calc,
     {
-      disp <- predict_multiclass(bundle$discharge, input, predictors_full)
+      if (selected_mode() == "full") {
+        disp <- predict_multiclass(bundle$discharge, input, predictors_full)
 
-      bin <- copy(binary_endpoint_spec)
-      bin[, probability := NA_real_]
+        bin <- copy(binary_endpoint_spec)
+        bin[, probability := NA_real_]
 
-      for (i in seq_len(nrow(bin))) {
-        fallback_predictors <- if (bin$fallback[i] == "no_resp") predictors_no_resp else predictors_full
-        bin$probability[i] <- predict_optional_binary(bin$endpoint[i], input, fallback_predictors)
+        for (i in seq_len(nrow(bin))) {
+          fallback_predictors <- if (bin$fallback[i] == "no_resp") predictors_no_resp else predictors_full
+          bin$probability[i] <- predict_optional_binary(bin$endpoint[i], input, fallback_predictors)
+        }
+
+        bin[, available := is.finite(probability)]
+
+        return(list(mode = "full", endpoint = "all", discharge = disp, binary = bin))
       }
 
-      bin[, available := is.finite(probability)]
+      ep <- selected_endpoint()
+      if (ep == "discharge") {
+        disp <- predict_multiclass(bundle$discharge, input, predictors_full)
+        return(list(mode = "quick", endpoint = ep, discharge = disp, binary = data.table()))
+      }
 
-      list(
-        discharge = disp,
-        binary = bin
-      )
+      spec <- copy(binary_endpoint_spec[endpoint == ep])
+      spec[, probability := NA_real_]
+      fallback_predictors <- if (spec$fallback[1] == "no_resp") predictors_no_resp else predictors_full
+      spec$probability[1] <- predict_optional_binary(ep, input, fallback_predictors)
+      spec[, available := is.finite(probability)]
+
+      list(mode = "quick", endpoint = ep, discharge = data.table(), binary = spec)
     },
     ignoreInit = FALSE
   )
 
-  output$disposition_slim <- renderUI({
+  output$result_note <- renderUI({
     req(results())
-    d <- copy(results()$discharge)
-    d[, probability_label := sprintf("%.1f%%", 100 * probability)]
-
-    preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
-    d[, ord := match(class, preferred)]
-    d[is.na(ord), ord := 99L]
-    d <- d[order(ord, -probability)]
-
-    tags$div(
-      class = "slim-disp",
-      lapply(seq_len(nrow(d)), function(i) {
-        tags$div(
-          class = "disp-cell",
-          tags$div(class = "disp-label", d$class[i]),
-          tags$div(class = "disp-value", d$probability_label[i])
-        )
-      })
-    )
+    if (results()$mode == "quick") {
+      tags$span("Quick Mode returns only the selected endpoint. It uses the deployed full model, with omitted inputs set to default/reference values. Switch to Full calculator mode to view all outputs.")
+    } else {
+      tags$span("Disposition probabilities are mutually exclusive and sum to 100%. Other outcomes are independent binary predictions and should be interpreted separately. Binary probabilities use logistic recalibration when calibration parameters are present in the model bundle.")
+    }
   })
 
   output$result_cards <- renderUI({
     req(results())
+
+    if (results()$mode == "quick") {
+      if (results()$endpoint == "discharge") {
+        disp <- copy(results()$discharge)
+        preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
+        disp[, ord := match(class, preferred)]
+        disp[is.na(ord), ord := 99L]
+        disp <- disp[order(ord, -probability)]
+
+        disp_cards <- lapply(seq_len(nrow(disp)), function(i) {
+          result_card(
+            name = disp$class[i],
+            probability = disp$probability[i],
+            type_class = "result-disposition"
+          )
+        })
+
+        return(result_section(
+          title = "Discharge disposition",
+          note = "Quick Mode · Mutually exclusive",
+          cards = disp_cards
+        ))
+      }
+
+      bin <- copy(results()$binary)
+      if (nrow(bin) == 0) return(NULL)
+
+      subtext <- bin$subtext[1]
+      if (!isTRUE(bin$available[1])) {
+        subtext <- ifelse(is.na(subtext), "Model not found in uploaded model bundle", paste(subtext, "· Model not found in uploaded model bundle"))
+      } else {
+        subtext <- paste0(
+          ifelse(is.na(subtext), "", paste0(subtext, " · ")),
+          "Endpoint-specific Quick Mode"
+        )
+      }
+
+      return(result_section(
+        title = bin$outcome[1],
+        note = "Selected endpoint",
+        cards = list(result_card(
+          name = bin$outcome[1],
+          probability = bin$probability[1],
+          type_class = bin$type_class[1],
+          subtext = subtext
+        )),
+        grid_class = "one"
+      ))
+    }
 
     disp <- copy(results()$discharge)
     preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
@@ -1095,7 +1524,6 @@ server <- function(input, output, session) {
     prolonged <- bin[section == "Prolonged utilization"]
 
     tags$div(
-      class = "results-wrap",
       result_section(
         title = "Discharge disposition",
         note = "Mutually exclusive",
