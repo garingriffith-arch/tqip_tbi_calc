@@ -1,0 +1,17 @@
+# R session files
+.Rhistory
+.RData
+.Ruserdata
+
+# Local logs/caches
+*.log
+.DS_Store
+Thumbs.db
+
+# rsconnect account metadata can include deployment/account-specific paths.
+# Keep manifest.json separately if you intentionally want to track it.
+rsconnect/
+
+# The model RDS files are needed for deployment. Do not commit them unless you intentionally
+# want the public repository to contain the locked app bundle.
+# data/*.rds
