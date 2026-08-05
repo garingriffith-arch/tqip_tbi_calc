@@ -1141,7 +1141,7 @@ ui <- page_fluid(
           }
         ),
         div(
-          h1("TBI Resource Utilization Calculator", class = "header-title"),
+          h1("TBI-TRACT: Trauma Resource and Acute Care Trajectory Calculator", class = "header-title"),
           p("Oregon Health & Science University · Department of Neurological Surgery", class = "header-subtitle")
         )
       )
