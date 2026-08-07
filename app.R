@@ -207,7 +207,7 @@ ui_group_map <- c(
 visible_vars <- c(
   "age", "sex_clean", "race_clean", "ethnicity_clean", "insurance_clean",
   "transfer_clean", "mechanism_clean", "helmet_clean",
-  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "gcs_total_aug", "pupil_clean",
+  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "pupil_clean",
   "sbp_clean", "pulse_clean", "rr_clean", "spo2_clean", "respiratoryassistance_clean",
   "iss_clean", "max_head_ais_clean", "max_extracranial_ais_clean",
   "bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker",
@@ -220,6 +220,7 @@ visible_vars <- c(
 
 derived_vars <- c(
   "age_group_aug",
+  "gcs_total_aug",
   "gcs_severity_aug",
   "hypotension_sbp90_aug",
   "hypoxia_spo2_90_aug",
@@ -306,7 +307,6 @@ metadata[variable == "iss_clean", `:=`(input_type = "numeric", min = 1, max = 75
 metadata[variable == "gcs_eye_clean", `:=`(input_type = "gcs_select", default = "4", choices = "1||2||3||4")]
 metadata[variable == "gcs_motor_clean", `:=`(input_type = "gcs_select", default = "6", choices = "1||2||3||4||5||6")]
 metadata[variable == "gcs_verbal_clean", `:=`(input_type = "gcs_select", default = "5", choices = "1||2||3||4||5")]
-metadata[variable == "gcs_total_aug", `:=`(input_type = "gcs_select", default = "15", choices = paste(3:15, collapse = "||"))]
 
 metadata[variable %in% c("max_head_ais_clean", "max_extracranial_ais_clean"), `:=`(
   input_type = "ais_severity",
@@ -535,7 +535,8 @@ quick_predictor_sets <- list(
 # Source visible variables needed when a high-yield predictor is derived.
 source_var_map <- list(
   age_group_aug = c("age"),
-  gcs_severity_aug = c("gcs_total_aug"),
+  gcs_total_aug = c("gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean"),
+  gcs_severity_aug = c("gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean"),
   hypotension_sbp90_aug = c("sbp_clean"),
   hypoxia_spo2_90_aug = c("spo2_clean"),
   tachycardia_120_aug = c("pulse_clean"),
@@ -598,7 +599,7 @@ source_vars_for_predictors <- function(predictors) {
 
 clinical_core_visible <- c(
   "age", "transfer_clean", "mechanism_clean",
-  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "gcs_total_aug", "pupil_clean",
+  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "pupil_clean",
   "sbp_clean", "pulse_clean", "rr_clean", "spo2_clean",
   "iss_clean", "max_head_ais_clean", "max_extracranial_ais_clean",
   "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury", "dx_focal_contusion_or_iph",
@@ -617,7 +618,7 @@ endpoint_visible_vars <- function(endpoint, mode = c("quick", "full")) {
   preds <- quick_predictor_sets[[endpoint]]
   if (is.null(preds)) return(visible_vars)
 
-  vars <- unique(c(source_vars_for_predictors(preds), "age", "gcs_total_aug"))
+  vars <- unique(c(source_vars_for_predictors(preds), "age"))
   vars <- vars[vars %in% visible_vars]
   vars[order(match(vars, visible_vars))]
 }
@@ -664,11 +665,24 @@ derive_gcs_severity <- function(gcs, choices) {
   ifelse(is.na(hit), choices[1], hit)
 }
 
+calculate_gcs_total <- function(input) {
+  eye <- safe_numeric(input[[input_id("gcs_eye_clean")]], 4)
+  motor <- safe_numeric(input[[input_id("gcs_motor_clean")]], 6)
+  verbal <- safe_numeric(input[[input_id("gcs_verbal_clean")]], 5)
+
+  eye <- min(max(eye, 1), 4)
+  motor <- min(max(motor, 1), 6)
+  verbal <- min(max(verbal, 1), 5)
+
+  as.integer(eye + motor + verbal)
+}
+
 derived_value <- function(v, row, input) {
   choices <- split_choices(row$choices, c("0", "1"))
 
   if (v == "age_group_aug") return(derive_age_group(input[[input_id("age")]], choices))
-  if (v == "gcs_severity_aug") return(derive_gcs_severity(input[[input_id("gcs_total_aug")]], choices))
+  if (v == "gcs_total_aug") return(calculate_gcs_total(input))
+  if (v == "gcs_severity_aug") return(derive_gcs_severity(calculate_gcs_total(input), choices))
   if (v == "hypotension_sbp90_aug") return(as.integer(safe_numeric(input[[input_id("sbp_clean")]], 999) < 90))
   if (v == "hypoxia_spo2_90_aug") return(as.integer(safe_numeric(input[[input_id("spo2_clean")]], 999) <= 90))
   if (v == "tachycardia_120_aug") return(as.integer(safe_numeric(input[[input_id("pulse_clean")]], 0) >= 120))
@@ -910,8 +924,8 @@ binary_endpoint_spec <- data.table(
     "ICP monitor/EVD/BOLT placement",
     "Craniotomy/craniectomy",
     "Hospital LOS ≥20 days",
-    "ICU LOS ≥8 days, if ICU admitted",
-    "Ventilator duration ≥8 days, if ventilated"
+    "ICU LOS ≥8 days",
+    "Ventilator duration ≥8 days"
   ),
   section = c(
     "Acute utilization",
@@ -946,8 +960,8 @@ binary_endpoint_spec <- data.table(
     "Neurosurgical resource endpoint",
     "Neurosurgical operative endpoint",
     NA_character_,
-    "Conditional on ICU admission",
-    "Conditional on mechanical ventilation"
+    "Full-cohort endpoint",
+    "Full-cohort endpoint"
   )
 )
 
@@ -963,7 +977,6 @@ endpoint_choices <- c(
 gcs_eye_choices <- c("1 - None" = "1", "2 - To pain" = "2", "3 - To speech" = "3", "4 - Spontaneous" = "4")
 gcs_motor_choices <- c("1 - None" = "1", "2 - Extension" = "2", "3 - Flexion" = "3", "4 - Withdraws" = "4", "5 - Localizes" = "5", "6 - Obeys commands" = "6")
 gcs_verbal_choices <- c("1 - None" = "1", "2 - Incomprehensible" = "2", "3 - Inappropriate words" = "3", "4 - Confused" = "4", "5 - Oriented" = "5")
-gcs_total_choices <- as.character(3:15)
 
 ais_choices <- c(
   "0 - None" = "0",
@@ -1020,10 +1033,11 @@ make_input_control <- function(row) {
       row$variable,
       gcs_eye_clean = gcs_eye_choices,
       gcs_motor_clean = gcs_motor_choices,
-      gcs_verbal_clean = gcs_verbal_choices,
-      gcs_total_aug = gcs_total_choices,
-      gcs_total_choices
+      gcs_verbal_clean = gcs_verbal_choices
     )
+    if (is.null(choices) || length(choices) == 0) {
+      choices <- split_choices(row$choices, as.character(row$default))
+    }
     selectInput(id, row$label, choices = choices, selected = as.character(row$default), selectize = FALSE)
   } else if (input_type == "ais_severity") {
     selectInput(id, row$label, choices = ais_choices, selected = as.character(row$default), selectize = FALSE)
@@ -1044,12 +1058,16 @@ input_group_ui <- function(group_name, allowed_vars = visible_vars) {
   rows <- metadata[group == group_name & input_type != "derived" & variable %in% allowed_vars][order(app_order)]
   if (nrow(rows) == 0) return(NULL)
 
-  accordion_panel(
-    title = group_name,
-    lapply(seq_len(nrow(rows)), function(i) {
-      make_input_control(rows[i])
-    })
-  )
+  controls <- lapply(seq_len(nrow(rows)), function(i) {
+    make_input_control(rows[i])
+  })
+
+  gcs_components <- c("gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean")
+  if (group_name == "Neurologic status" && all(gcs_components %in% allowed_vars)) {
+    controls <- c(controls, list(uiOutput("gcs_total_display")))
+  }
+
+  do.call(accordion_panel, c(list(title = group_name), controls))
 }
 
 extracranial_profile_ui <- function() {
@@ -1095,6 +1113,10 @@ ui <- page_fluid(
         .btn-primary { border-radius: 14px !important; font-weight: 750; min-height: 46px; margin-top: 6px; }
         .mode-box { background: #edf4fb; border: 1px solid #dbe8f5; border-radius: 18px; padding: 14px 14px 2px 14px; margin-bottom: 14px; }
         .quick-note { font-size: 0.88rem; color: #526579; line-height: 1.42; margin-top: -4px; margin-bottom: 12px; }
+        .gcs-total-box { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; margin: 2px 0 12px 0; border: 1px solid #dbe8f5; border-radius: 14px; background: #f8fbfe; }
+        .gcs-total-label { color: #425466; font-weight: 700; }
+        .gcs-total-value { color: #1f4e79; font-size: 1.35rem; font-weight: 900; line-height: 1; }
+        .gcs-total-note { color: #6b7a8c; font-size: 0.78rem; margin-top: 4px; }
         .block-gap { height: 18px; }
         .note { font-size: 0.9rem; color: #6b7a8c; margin-top: 10px; line-height: 1.45; }
         .detail-card h3 { font-size: 1.08rem; font-weight: 750; color: #243447; margin-top: 0; margin-bottom: 0.8rem; }
@@ -1227,7 +1249,7 @@ ui <- page_fluid(
               tags$li("Discharge disposition probabilities: home/home health, post-acute facility, and death/hospice."),
               tags$li("Acute utilization outcomes: ICU admission and mechanical ventilation."),
               tags$li("Neurosurgical resource-utilization outcomes: ICP monitor/EVD/BOLT placement and craniotomy/craniectomy."),
-              tags$li("Prolonged utilization outcomes: hospital length of stay ≥20 days, ICU length of stay ≥8 days among ICU patients, and ventilator duration ≥8 days among ventilated patients.")
+              tags$li("Prolonged utilization outcomes: hospital length of stay ≥20 days, ICU length of stay ≥8 days, and ventilator duration ≥8 days. ICU and ventilator-duration endpoints are modeled in the full cohort, with patients without the corresponding resource use classified as not experiencing the prolonged-utilization endpoint.")
             )
           ),
 
@@ -1235,7 +1257,7 @@ ui <- page_fluid(
             h3("Interpretation and limitations"),
             tags$ul(
               tags$li("Displayed binary probabilities are recalibrated when calibration parameters are available in the model bundle."),
-              tags$li("Conditional outcomes should be interpreted within the relevant population, such as ICU LOS among patients admitted to the ICU."),
+              tags$li("ICU LOS ≥8 days and ventilator duration ≥8 days are full-cohort endpoints, consistent with model development; patients without ICU admission or mechanical ventilation are classified as not experiencing the corresponding prolonged-utilization outcome."),
               tags$li("Predictions are derived from registry data and may not capture local practice patterns, bed availability, procedural indication, unmet need, or clinician judgment."),
               tags$li("Displayed probabilities are point estimates. Uncertainty intervals are not shown unless a formal uncertainty-estimation procedure is implemented and validated.")
             )
@@ -1311,6 +1333,18 @@ server <- function(input, output, session) {
     endpoint_visible_vars(
       endpoint = if (selected_mode() == "full") "all" else selected_endpoint(),
       mode = selected_mode()
+    )
+  })
+
+  output$gcs_total_display <- renderUI({
+    total <- calculate_gcs_total(input)
+    tags$div(
+      class = "gcs-total-box",
+      tags$div(
+        tags$div(class = "gcs-total-label", "Calculated total GCS"),
+        tags$div(class = "gcs-total-note", "Automatically calculated from eye + motor + verbal scores")
+      ),
+      tags$div(class = "gcs-total-value", total)
     )
   })
 
@@ -1543,7 +1577,7 @@ server <- function(input, output, session) {
       ),
       result_section(
         title = "Prolonged utilization",
-        note = "Independent or conditional estimates",
+        note = "Independent binary estimates",
         cards = make_cards(prolonged)
       )
     )
