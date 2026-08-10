@@ -1,16 +1,7 @@
-# ============================================================
-# TBI Resource Utilization Calculator
-# Clinician-facing Shiny app with endpoint-specific Quick Mode
-#
-# Required data files in data/:
-#   - model_bundle.rds
-#   - predictor_metadata.rds
-#
-# Quick Mode uses the deployed/full model bundle. It does not require
-# separate reduced-model RDS files. It simply shows the endpoint-specific
-# high-yield inputs and sends all omitted predictors through the existing
-# default/reference-value pathway.
-# ============================================================
+# TBI-TRACT: Trauma Resource and Acute Care Trajectory Calculator
+# Clinician-facing Shiny application for TBI resource-utilization prediction.
+# Model inputs are derived directly from the bundled predictor metadata.
+
 
 suppressPackageStartupMessages({
   library(shiny)
@@ -18,18 +9,40 @@ suppressPackageStartupMessages({
   library(data.table)
   library(Matrix)
   library(xgboost)
-  library(scales)
-  library(stringr)
 })
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-bundle <- readRDS(file.path("data", "model_bundle.rds"))
-meta_obj <- readRDS(file.path("data", "predictor_metadata.rds"))
+data_dir <- "data"
+model_path <- file.path(data_dir, "model_bundle.rds")
+metadata_path <- file.path(data_dir, "predictor_metadata.rds")
+
+required_files <- c(model_path, metadata_path)
+missing_files <- required_files[!file.exists(required_files)]
+if (length(missing_files) > 0L) {
+  stop(
+    "Missing required application file(s): ",
+    paste(missing_files, collapse = ", "),
+    call. = FALSE
+  )
+}
+
+bundle <- readRDS(model_path)
+meta_obj <- readRDS(metadata_path)
+
+if (is.null(meta_obj$metadata)) {
+  stop("predictor_metadata.rds does not contain a 'metadata' object.", call. = FALSE)
+}
+if (is.null(bundle$discharge)) {
+  stop("model_bundle.rds does not contain the required discharge model.", call. = FALSE)
+}
 
 metadata <- as.data.table(meta_obj$metadata)
 for (nm in c("variable", "label", "group", "input_type", "model_type", "choices", "default", "min", "max")) {
   if (!nm %in% names(metadata)) metadata[, (nm) := NA_character_]
+}
+if (anyDuplicated(metadata$variable)) {
+  stop("Predictor metadata contains duplicate variable names.", call. = FALSE)
 }
 predictors_full <- meta_obj$predictors_full
 predictors_no_resp <- meta_obj$predictors_no_resp %||% setdiff(predictors_full, "respiratoryassistance_clean")
@@ -40,32 +53,20 @@ discharge_levels <- meta_obj$discharge_levels %||% c("Home/home health", "Post-a
 input_id <- function(v) paste0("var__", v)
 
 safe_numeric <- function(x, default = 0) {
-  if (is.null(x) || length(x) == 0) return(default)
+  if (is.null(x) || length(x) == 0L) return(default)
   y <- suppressWarnings(as.numeric(x[[1]]))
   if (!is.finite(y)) return(default)
   y
 }
 
 safe_int01 <- function(x) {
-  if (is.null(x) || length(x) == 0) return(0L)
-  as.integer(as.character(x[[1]]) %in% c("1", "Yes", "yes", "TRUE", "true", TRUE))
+  if (is.null(x) || length(x) == 0L) return(0L)
+  value <- tolower(trimws(as.character(x[[1]])))
+  as.integer(value %in% c("1", "yes", "true"))
 }
 
 get_yesno <- function(input, v) {
   safe_int01(input[[input_id(v)]])
-}
-
-get_ext_sev <- function(input, region) {
-  val <- input[[paste0("ui__", region, "_severity")]]
-  if (is.null(val) || length(val) == 0) "none" else as.character(val[[1]])
-}
-
-ext_any <- function(input, region) {
-  as.integer(get_ext_sev(input, region) != "none")
-}
-
-ext_severe <- function(input, region) {
-  as.integer(get_ext_sev(input, region) == "severe")
 }
 
 clip_prob <- function(p, eps = 1e-6) {
@@ -86,15 +87,17 @@ apply_binary_recalibration <- function(p, obj) {
   as.numeric(plogis(intercept + slope * qlogis(clip_prob(p, eps))))
 }
 
-find_xgb <- function(obj, max_depth = 10) {
-  if (max_depth < 0 || is.null(obj)) return(NULL)
+find_xgb <- function(obj, max_depth = 10L) {
+  if (max_depth < 0L || is.null(obj)) return(NULL)
   if (inherits(obj, "xgb.Booster")) return(obj)
+
   if (is.list(obj)) {
-    for (nm in names(obj)) {
-      hit <- find_xgb(obj[[nm]], max_depth - 1)
+    for (item in obj) {
+      hit <- find_xgb(item, max_depth - 1L)
       if (!is.null(hit)) return(hit)
     }
   }
+
   NULL
 }
 
@@ -105,8 +108,28 @@ get_model <- function(obj) {
 }
 
 # ------------------------------------------------------------
-# Metadata curation
+# Metadata and model configuration
 # ------------------------------------------------------------
+
+model_entries <- names(bundle)[vapply(
+  bundle,
+  function(x) is.list(x) && !is.null(x$predictors) && !is.null(x$feature_names),
+  logical(1)
+)]
+
+bundle_predictors <- unique(unlist(
+  lapply(bundle[model_entries], function(x) x$predictors),
+  use.names = FALSE
+))
+
+missing_predictor_metadata <- setdiff(bundle_predictors, metadata$variable)
+if (length(missing_predictor_metadata) > 0L) {
+  stop(
+    "Predictor metadata is missing: ",
+    paste(missing_predictor_metadata, collapse = ", "),
+    call. = FALSE
+  )
+}
 
 label_map <- c(
   age = "Age, years",
@@ -131,10 +154,6 @@ label_map <- c(
   spo2_clean = "Oxygen saturation, %",
   respiratoryassistance_clean = "Respiratory assistance on arrival",
 
-  iss_clean = "Injury Severity Score (ISS; overall trauma injury severity, 1–75)",
-  max_head_ais_clean = "Maximum head AIS severity",
-  max_extracranial_ais_clean = "Maximum extracranial AIS severity",
-
   bleeding_disorder = "Bleeding disorder / anticoagulopathy",
   diabetes = "Diabetes",
   copd = "COPD",
@@ -153,7 +172,15 @@ label_map <- c(
   dx_skull_fracture_any = "Any skull fracture",
   dx_vault_skull_fracture = "Vault skull fracture",
   dx_base_skull_fracture = "Basilar skull fracture",
-  dx_open_wound_head = "Open wound of head"
+  dx_open_wound_head = "Open wound of head",
+
+  dx_facial_fracture = "Facial fracture",
+  dx_spinal_cord_injury = "Spinal cord injury",
+  dx_neck_vascular_injury = "Neck vascular injury",
+  dx_thoracic_injury = "Thoracic injury",
+  dx_abdominal_pelvic_injury = "Abdominal/pelvic injury",
+  dx_upper_extremity_injury = "Upper extremity injury",
+  dx_lower_extremity_injury = "Lower extremity injury"
 )
 
 ui_group_map <- c(
@@ -179,10 +206,6 @@ ui_group_map <- c(
   spo2_clean = "Vital signs and respiratory support",
   respiratoryassistance_clean = "Vital signs and respiratory support",
 
-  iss_clean = "Injury burden",
-  max_head_ais_clean = "Injury burden",
-  max_extracranial_ais_clean = "Injury burden",
-
   bleeding_disorder = "Comorbidities",
   diabetes = "Comorbidities",
   copd = "Comorbidities",
@@ -201,7 +224,15 @@ ui_group_map <- c(
   dx_skull_fracture_any = "Intracranial injury pattern",
   dx_vault_skull_fracture = "Intracranial injury pattern",
   dx_base_skull_fracture = "Intracranial injury pattern",
-  dx_open_wound_head = "Intracranial injury pattern"
+  dx_open_wound_head = "Intracranial injury pattern",
+
+  dx_facial_fracture = "Extracranial injury pattern",
+  dx_spinal_cord_injury = "Extracranial injury pattern",
+  dx_neck_vascular_injury = "Extracranial injury pattern",
+  dx_thoracic_injury = "Extracranial injury pattern",
+  dx_abdominal_pelvic_injury = "Extracranial injury pattern",
+  dx_upper_extremity_injury = "Extracranial injury pattern",
+  dx_lower_extremity_injury = "Extracranial injury pattern"
 )
 
 visible_vars <- c(
@@ -209,13 +240,15 @@ visible_vars <- c(
   "transfer_clean", "mechanism_clean", "helmet_clean",
   "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "pupil_clean",
   "sbp_clean", "pulse_clean", "rr_clean", "spo2_clean", "respiratoryassistance_clean",
-  "iss_clean", "max_head_ais_clean", "max_extracranial_ais_clean",
   "bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker",
   "dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
   "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
   "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
   "dx_brain_compression_herniation", "dx_skull_fracture_any",
-  "dx_vault_skull_fracture", "dx_base_skull_fracture", "dx_open_wound_head"
+  "dx_vault_skull_fracture", "dx_base_skull_fracture", "dx_open_wound_head",
+  "dx_facial_fracture", "dx_spinal_cord_injury", "dx_neck_vascular_injury",
+  "dx_thoracic_injury", "dx_abdominal_pelvic_injury",
+  "dx_upper_extremity_injury", "dx_lower_extremity_injury"
 )
 
 derived_vars <- c(
@@ -226,69 +259,22 @@ derived_vars <- c(
   "hypoxia_spo2_90_aug",
   "tachycardia_120_aug",
   "abnormal_rr_aug",
-
+  "n_preexisting_conditions",
   "dx_any_s06_intracranial",
   "dx_intracranial_hemorrhage_any",
   "dx_multiple_intracranial_patterns",
   "dx_polyregion_injury_count",
   "dx_polyregion_2plus",
-  "dx_polyregion_3plus",
-
-  "dx_facial_fracture",
-  "dx_spinal_cord_injury",
-  "dx_neck_vascular_injury",
-  "dx_thoracic_injury",
-  "dx_abdominal_pelvic_injury",
-  "dx_upper_extremity_injury",
-  "dx_lower_extremity_injury",
-
-  "max_overall_ais_aug",
-  "n_head_ais_codes",
-  "n_extracranial_ais_codes",
-  "n_total_ais_codes_aug",
-  "severe_head_ais3_aug",
-  "critical_head_ais5_aug",
-  "severe_extracranial_ais3_aug",
-  "severe_tbi_ais3_src_aug",
-  "severe_extracranial_ais3_src_aug",
-  "any_extracranial_injury_aug",
-  "isolated_tbi_derived_aug",
-
-  "ais_face_any",
-  "ais_thorax_any",
-  "ais_abdomen_any",
-  "ais_spine_any",
-  "ais_upper_ext_any",
-  "ais_lower_ext_any",
-  "ais_external_any",
-  "ais_headneck_severe3",
-  "ais_face_severe3",
-  "ais_thorax_severe3",
-  "ais_abdomen_severe3",
-  "ais_spine_severe3",
-  "ais_upper_ext_severe3",
-  "ais_lower_ext_severe3",
-  "ais_region_count",
-  "ais_severe_region_count",
-  "ais_polyregion_2plus",
-  "ais_polyregion_3plus",
-  "ais_severe_polyregion_2plus",
-
-  "n_preexisting_conditions"
+  "dx_polyregion_3plus"
 )
 
 metadata[variable %in% names(label_map), label := unname(label_map[variable])]
 metadata[variable %in% names(ui_group_map), group := unname(ui_group_map[variable])]
 metadata[variable %in% derived_vars, input_type := "derived"]
-metadata[!variable %in% visible_vars & !variable %in% derived_vars, input_type := "derived"]
 
 yesno_vars <- c(
   "bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker",
-  grep("^dx_", metadata$variable, value = TRUE),
-  grep("^ais_", metadata$variable, value = TRUE),
-  "severe_head_ais3_aug", "critical_head_ais5_aug", "severe_extracranial_ais3_aug",
-  "severe_tbi_ais3_src_aug", "severe_extracranial_ais3_src_aug",
-  "any_extracranial_injury_aug", "isolated_tbi_derived_aug"
+  grep("^dx_", metadata$variable, value = TRUE)
 )
 
 metadata[variable %in% yesno_vars & input_type != "derived", `:=`(
@@ -297,23 +283,30 @@ metadata[variable %in% yesno_vars & input_type != "derived", `:=`(
   choices = "0||1"
 )]
 
-metadata[variable == "age", `:=`(input_type = "numeric", min = 18, max = 120, default = "65")]
-metadata[variable == "sbp_clean", `:=`(input_type = "numeric", min = 0, max = 300, default = "120")]
-metadata[variable == "pulse_clean", `:=`(input_type = "numeric", min = 0, max = 250, default = "80")]
-metadata[variable == "rr_clean", `:=`(input_type = "numeric", min = 0, max = 80, default = "16")]
-metadata[variable == "spo2_clean", `:=`(input_type = "numeric", min = 0, max = 100, default = "98")]
-metadata[variable == "iss_clean", `:=`(input_type = "numeric", min = 1, max = 75, default = "9")]
+metadata[variable == "age", `:=`(
+  input_type = "numeric", min = 18, max = 120, default = "65"
+)]
+metadata[variable == "sbp_clean", `:=`(
+  input_type = "numeric", min = 0, max = 300, default = "120"
+)]
+metadata[variable == "pulse_clean", `:=`(
+  input_type = "numeric", min = 0, max = 250, default = "80"
+)]
+metadata[variable == "rr_clean", `:=`(
+  input_type = "numeric", min = 0, max = 80, default = "16"
+)]
+metadata[variable == "spo2_clean", `:=`(
+  input_type = "numeric", min = 0, max = 100, default = "98"
+)]
 
-metadata[variable == "gcs_eye_clean", `:=`(input_type = "gcs_select", default = "4", choices = "1||2||3||4")]
-metadata[variable == "gcs_motor_clean", `:=`(input_type = "gcs_select", default = "6", choices = "1||2||3||4||5||6")]
-metadata[variable == "gcs_verbal_clean", `:=`(input_type = "gcs_select", default = "5", choices = "1||2||3||4||5")]
-
-metadata[variable %in% c("max_head_ais_clean", "max_extracranial_ais_clean"), `:=`(
-  input_type = "ais_severity",
-  min = 0,
-  max = 6,
-  default = ifelse(variable == "max_head_ais_clean", "1", "0"),
-  choices = "0||1||2||3||4||5||6"
+metadata[variable == "gcs_eye_clean", `:=`(
+  input_type = "gcs_select", default = "4", choices = "1||2||3||4"
+)]
+metadata[variable == "gcs_motor_clean", `:=`(
+  input_type = "gcs_select", default = "6", choices = "1||2||3||4||5||6"
+)]
+metadata[variable == "gcs_verbal_clean", `:=`(
+  input_type = "gcs_select", default = "5", choices = "1||2||3||4||5"
 )]
 
 metadata[, app_order := match(variable, visible_vars)]
@@ -321,314 +314,124 @@ metadata[is.na(app_order), app_order := 9999L]
 metadata[is.na(group) & variable %in% visible_vars, group := "Other inputs"]
 metadata[is.na(label) | label == "", label := variable]
 
-# ------------------------------------------------------------
-# Endpoint-specific Quick Mode predictor sets
-# ------------------------------------------------------------
-
-quick_predictor_sets <- list(
-  icu_admission = c(
-    "iss_clean",
-    "dx_intracranial_hemorrhage_any",
-    "max_overall_ais_aug",
-    "gcs_total_aug",
-    "dx_multiple_intracranial_patterns",
-    "gcs_verbal_clean",
-    "dx_concussion",
-    "n_preexisting_conditions",
-    "n_total_ais_codes_aug",
-    "n_head_ais_codes",
-    "gcs_motor_clean",
-    "age",
-    "respiratoryassistance_clean",
-    "gcs_severity_aug",
-    "pupil_clean",
-    "dx_subarachnoid_hemorrhage",
-    "dx_spinal_cord_injury",
-    "max_extracranial_ais_clean",
-    "sbp_clean",
-    "pulse_clean",
-    "max_head_ais_clean",
-    "dx_cerebral_edema_traumatic",
-    "transfer_clean",
-    "n_extracranial_ais_codes",
-    "dx_epidural_hematoma",
-    "ais_spine_severe3",
-    "spo2_clean",
-    "gcs_eye_clean",
-    "rr_clean",
-    "mechanism_clean"
-  ),
-  mechanical_ventilation = c(
-    "gcs_total_aug",
-    "iss_clean",
-    "gcs_motor_clean",
-    "gcs_verbal_clean",
-    "n_total_ais_codes_aug",
-    "max_overall_ais_aug",
-    "age",
-    "pulse_clean",
-    "transfer_clean",
-    "dx_multiple_intracranial_patterns",
-    "dx_cerebral_edema_traumatic",
-    "sbp_clean",
-    "rr_clean",
-    "n_preexisting_conditions",
-    "spo2_clean",
-    "pupil_clean",
-    "dx_intracranial_hemorrhage_any",
-    "dx_concussion",
-    "mechanism_clean",
-    "dx_brain_compression_herniation"
-  ),
-  hlos_ge20 = c(
-    "iss_clean",
-    "gcs_total_aug",
-    "n_total_ais_codes_aug",
-    "age",
-    "gcs_verbal_clean",
-    "n_preexisting_conditions",
-    "pupil_clean",
-    "ais_severe_region_count",
-    "gcs_motor_clean",
-    "max_overall_ais_aug",
-    "dx_intracranial_hemorrhage_any",
-    "max_extracranial_ais_clean",
-    "dx_multiple_intracranial_patterns",
-    "race_clean",
-    "n_extracranial_ais_codes",
-    "mechanism_clean",
-    "insurance_clean",
-    "dx_diffuse_axonal_injury",
-    "max_head_ais_clean",
-    "dx_concussion",
-    "transfer_clean",
-    "ais_polyregion_3plus",
-    "ais_region_count",
-    "respiratoryassistance_clean",
-    "ethnicity_clean",
-    "gcs_eye_clean",
-    "sbp_clean",
-    "sex_clean",
-    "dx_focal_contusion_or_iph",
-    "dx_subdural_hematoma"
-  ),
-  icu_los_ge8 = c(
-    "gcs_total_aug",
-    "iss_clean",
-    "n_total_ais_codes_aug",
-    "gcs_motor_clean",
-    "age",
-    "pupil_clean",
-    "gcs_verbal_clean",
-    "max_extracranial_ais_clean",
-    "max_overall_ais_aug",
-    "dx_diffuse_axonal_injury",
-    "n_preexisting_conditions",
-    "max_head_ais_clean",
-    "dx_spinal_cord_injury",
-    "dx_multiple_intracranial_patterns",
-    "mechanism_clean",
-    "ais_severe_region_count",
-    "dx_intracranial_hemorrhage_any",
-    "insurance_clean",
-    "n_extracranial_ais_codes",
-    "dx_subarachnoid_hemorrhage",
-    "sex_clean",
-    "rr_clean",
-    "transfer_clean",
-    "dx_focal_contusion_or_iph",
-    "race_clean",
-    "spo2_clean",
-    "dx_concussion",
-    "dx_subdural_hematoma",
-    "sbp_clean",
-    "age_group_aug"
-  ),
-  vent_days_ge8 = c(
-    "iss_clean",
-    "age",
-    "pupil_clean",
-    "n_total_ais_codes_aug",
-    "dx_diffuse_axonal_injury",
-    "mechanism_clean",
-    "gcs_total_aug",
-    "max_overall_ais_aug",
-    "dx_multiple_intracranial_patterns",
-    "insurance_clean",
-    "ais_severe_region_count",
-    "sbp_clean",
-    "dx_cerebral_edema_traumatic",
-    "max_head_ais_clean",
-    "dx_subarachnoid_hemorrhage",
-    "n_preexisting_conditions",
-    "gcs_motor_clean",
-    "race_clean",
-    "dx_brain_compression_herniation",
-    "dx_epidural_hematoma"
-  ),
-  icp_monitor_evd_bolt = c(
-    "gcs_total_aug",
-    "max_head_ais_clean",
-    "gcs_motor_clean",
-    "iss_clean",
-    "n_head_ais_codes",
-    "critical_head_ais5_aug",
-    "dx_intracranial_hemorrhage_any",
-    "dx_cerebral_edema_traumatic",
-    "age",
-    "dx_concussion",
-    "severe_head_ais3_aug",
-    "dx_multiple_intracranial_patterns",
-    "n_total_ais_codes_aug",
-    "pupil_clean",
-    "gcs_verbal_clean",
-    "max_overall_ais_aug",
-    "dx_brain_compression_herniation",
-    "n_preexisting_conditions",
-    "mechanism_clean",
-    "dx_other_intracranial_injury",
-    "dx_subdural_hematoma",
-    "dx_subarachnoid_hemorrhage",
-    "dx_focal_contusion_or_iph",
-    "dx_vault_skull_fracture",
-    "dx_diffuse_axonal_injury",
-    "max_extracranial_ais_clean",
-    "dx_skull_fracture_any",
-    "dx_spinal_cord_injury",
-    "age_group_aug",
-    "severe_tbi_ais3_src_aug"
-  ),
-  craniotomy_craniectomy = c(
-    "max_head_ais_clean",
-    "critical_head_ais5_aug",
-    "severe_head_ais3_aug",
-    "gcs_total_aug",
-    "iss_clean",
-    "dx_subdural_hematoma",
-    "dx_epidural_hematoma",
-    "dx_cerebral_edema_traumatic",
-    "dx_vault_skull_fracture",
-    "dx_intracranial_hemorrhage_any",
-    "age",
-    "mechanism_clean",
-    "n_total_ais_codes_aug",
-    "severe_tbi_ais3_src_aug",
-    "pupil_clean",
-    "max_overall_ais_aug",
-    "dx_brain_compression_herniation",
-    "n_head_ais_codes",
-    "dx_skull_fracture_any",
-    "dx_focal_contusion_or_iph",
-    "dx_concussion",
-    "dx_diffuse_axonal_injury",
-    "insurance_clean",
-    "dx_multiple_intracranial_patterns",
-    "race_clean",
-    "sex_clean",
-    "dx_other_intracranial_injury",
-    "gcs_motor_clean",
-    "gcs_verbal_clean",
-    "gcs_eye_clean"
-  )
+# Quick Mode uses the highest-gain predictors from the deployed model itself.
+# This keeps the UI synchronized with the model bundle when models are updated.
+quick_top_n <- c(
+  discharge = 30L,
+  icu_admission = 30L,
+  mechanical_ventilation = 20L,
+  hlos_ge20 = 30L,
+  icu_los_ge8 = 30L,
+  vent_days_ge8 = 20L,
+  icp_monitor_evd_bolt = 30L,
+  craniotomy_craniectomy = 30L
 )
 
-# Source visible variables needed when a high-yield predictor is derived.
+feature_to_predictor <- function(feature, predictors) {
+  hits <- predictors[feature == predictors | startsWith(feature, predictors)]
+  if (length(hits) == 0L) return(NA_character_)
+  hits[which.max(nchar(hits))]
+}
+
+rank_model_predictors <- function(obj) {
+  predictors <- obj$predictors
+  if (is.null(predictors) || length(predictors) == 0L) return(character(0))
+
+  importance <- obj$importance
+  if (is.null(importance) || !all(c("Feature", "Gain") %in% names(importance))) {
+    importance <- tryCatch(
+      as.data.table(xgboost::xgb.importance(model = get_model(obj))),
+      error = function(e) data.table()
+    )
+  } else {
+    importance <- as.data.table(importance)
+  }
+
+  if (nrow(importance) == 0L || !all(c("Feature", "Gain") %in% names(importance))) {
+    return(predictors)
+  }
+
+  importance[, predictor := vapply(
+    Feature,
+    feature_to_predictor,
+    character(1),
+    predictors = predictors
+  )]
+
+  ranked <- importance[
+    !is.na(predictor),
+    .(gain = sum(as.numeric(Gain), na.rm = TRUE)),
+    by = predictor
+  ][order(-gain)]
+
+  unique(c(ranked$predictor, predictors))
+}
+
+quick_predictor_sets <- lapply(names(quick_top_n), function(endpoint) {
+  obj <- bundle[[endpoint]]
+  if (is.null(obj)) return(character(0))
+  head(rank_model_predictors(obj), quick_top_n[[endpoint]])
+})
+names(quick_predictor_sets) <- names(quick_top_n)
+
 source_var_map <- list(
-  age_group_aug = c("age"),
+  age_group_aug = "age",
   gcs_total_aug = c("gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean"),
   gcs_severity_aug = c("gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean"),
-  hypotension_sbp90_aug = c("sbp_clean"),
-  hypoxia_spo2_90_aug = c("spo2_clean"),
-  tachycardia_120_aug = c("pulse_clean"),
-  abnormal_rr_aug = c("rr_clean"),
-
-  dx_any_s06_intracranial = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
-                              "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
-                              "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury"),
-  dx_intracranial_hemorrhage_any = c("dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma", "dx_subarachnoid_hemorrhage"),
-  dx_multiple_intracranial_patterns = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
-                                        "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
-                                        "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
-                                        "dx_brain_compression_herniation"),
-
-  max_overall_ais_aug = c("max_head_ais_clean", "max_extracranial_ais_clean"),
-  severe_head_ais3_aug = c("max_head_ais_clean"),
-  critical_head_ais5_aug = c("max_head_ais_clean"),
-  severe_tbi_ais3_src_aug = c("max_head_ais_clean"),
-  severe_extracranial_ais3_aug = c("max_extracranial_ais_clean"),
-  severe_extracranial_ais3_src_aug = c("max_extracranial_ais_clean"),
-  any_extracranial_injury_aug = c("max_extracranial_ais_clean"),
-  isolated_tbi_derived_aug = c("max_extracranial_ais_clean"),
-
-  n_preexisting_conditions = c("bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker"),
-  n_head_ais_codes = c("dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
-                       "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
-                       "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
-                       "dx_brain_compression_herniation", "dx_skull_fracture_any"),
-  n_extracranial_ais_codes = c("max_extracranial_ais_clean"),
-  n_total_ais_codes_aug = c("max_head_ais_clean", "max_extracranial_ais_clean",
-                            "dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
-                            "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
-                            "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
-                            "dx_brain_compression_herniation", "dx_skull_fracture_any"),
-
-  ais_region_count = c("max_head_ais_clean", "max_extracranial_ais_clean"),
-  ais_severe_region_count = c("max_head_ais_clean", "max_extracranial_ais_clean"),
-  ais_polyregion_2plus = c("max_head_ais_clean", "max_extracranial_ais_clean"),
-  ais_polyregion_3plus = c("max_head_ais_clean", "max_extracranial_ais_clean"),
-  ais_severe_polyregion_2plus = c("max_head_ais_clean", "max_extracranial_ais_clean")
-)
-
-extracranial_derived_prefixes <- c(
-  "ais_face", "ais_thorax", "ais_abdomen", "ais_spine", "ais_upper_ext", "ais_lower_ext", "ais_external",
-  "dx_facial", "dx_spinal", "dx_thoracic", "dx_abdominal", "dx_upper", "dx_lower",
-  "dx_polyregion"
+  hypotension_sbp90_aug = "sbp_clean",
+  hypoxia_spo2_90_aug = "spo2_clean",
+  tachycardia_120_aug = "pulse_clean",
+  abnormal_rr_aug = "rr_clean",
+  n_preexisting_conditions = c(
+    "bleeding_disorder", "diabetes", "copd", "hypertension", "current_smoker"
+  ),
+  dx_intracranial_hemorrhage_any = c(
+    "dx_focal_contusion_or_iph", "dx_epidural_hematoma",
+    "dx_subdural_hematoma", "dx_subarachnoid_hemorrhage"
+  ),
+  dx_multiple_intracranial_patterns = c(
+    "dx_concussion", "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury",
+    "dx_focal_contusion_or_iph", "dx_epidural_hematoma", "dx_subdural_hematoma",
+    "dx_subarachnoid_hemorrhage", "dx_other_intracranial_injury",
+    "dx_brain_compression_herniation"
+  ),
+  dx_polyregion_injury_count = c(
+    "dx_facial_fracture", "dx_spinal_cord_injury", "dx_thoracic_injury",
+    "dx_abdominal_pelvic_injury", "dx_upper_extremity_injury",
+    "dx_lower_extremity_injury"
+  ),
+  dx_polyregion_2plus = c(
+    "dx_facial_fracture", "dx_spinal_cord_injury", "dx_thoracic_injury",
+    "dx_abdominal_pelvic_injury", "dx_upper_extremity_injury",
+    "dx_lower_extremity_injury"
+  ),
+  dx_polyregion_3plus = c(
+    "dx_facial_fracture", "dx_spinal_cord_injury", "dx_thoracic_injury",
+    "dx_abdominal_pelvic_injury", "dx_upper_extremity_injury",
+    "dx_lower_extremity_injury"
+  )
 )
 
 source_vars_for_predictors <- function(predictors) {
   src <- character(0)
+
   for (v in predictors) {
     if (v %in% visible_vars) src <- c(src, v)
     if (v %in% names(source_var_map)) src <- c(src, source_var_map[[v]])
-    if (any(startsWith(v, extracranial_derived_prefixes))) {
-      src <- c(src, "max_extracranial_ais_clean")
-    }
   }
+
   unique(src[src %in% visible_vars])
 }
-
-clinical_core_visible <- c(
-  "age", "transfer_clean", "mechanism_clean",
-  "gcs_eye_clean", "gcs_motor_clean", "gcs_verbal_clean", "pupil_clean",
-  "sbp_clean", "pulse_clean", "rr_clean", "spo2_clean",
-  "iss_clean", "max_head_ais_clean", "max_extracranial_ais_clean",
-  "dx_cerebral_edema_traumatic", "dx_diffuse_axonal_injury", "dx_focal_contusion_or_iph",
-  "dx_epidural_hematoma", "dx_subdural_hematoma", "dx_subarachnoid_hemorrhage",
-  "dx_brain_compression_herniation", "dx_skull_fracture_any"
-)
 
 endpoint_visible_vars <- function(endpoint, mode = c("quick", "full")) {
   mode <- match.arg(mode)
   if (mode == "full" || endpoint == "all") return(visible_vars)
 
-  if (endpoint == "discharge") {
-    return(unique(c(clinical_core_visible, "sex_clean", "race_clean", "ethnicity_clean", "insurance_clean")))
-  }
+  predictors <- quick_predictor_sets[[endpoint]]
+  if (is.null(predictors) || length(predictors) == 0L) return(visible_vars)
 
-  preds <- quick_predictor_sets[[endpoint]]
-  if (is.null(preds)) return(visible_vars)
-
-  vars <- unique(c(source_vars_for_predictors(preds), "age"))
-  vars <- vars[vars %in% visible_vars]
+  vars <- unique(c("age", source_vars_for_predictors(predictors)))
   vars[order(match(vars, visible_vars))]
-}
-
-needs_extracranial_profile <- function(endpoint, mode = c("quick", "full")) {
-  mode <- match.arg(mode)
-  if (mode == "full" || endpoint == "all") return(TRUE)
-  preds <- quick_predictor_sets[[endpoint]]
-  if (is.null(preds)) return(FALSE)
-  any(grepl("ais_|extracranial|dx_polyregion|dx_facial|dx_spinal|dx_thoracic|dx_abdominal|dx_upper|dx_lower", preds))
 }
 
 # ------------------------------------------------------------
@@ -638,7 +441,7 @@ needs_extracranial_profile <- function(endpoint, mode = c("quick", "full")) {
 split_choices <- function(x, fallback = c("0", "1")) {
   out <- unlist(strsplit(as.character(x), "\\|\\|"))
   out <- out[!is.na(out) & nzchar(out)]
-  if (length(out) == 0) fallback else out
+  if (length(out) == 0L) fallback else out
 }
 
 first_or <- function(x, fallback) {
@@ -656,13 +459,30 @@ derive_age_group <- function(age, choices) {
   ifelse(is.na(hit), choices[length(choices)], hit)
 }
 
+match_choice <- function(choices, label_pattern, numeric_pattern = NULL, fallback = choices[1]) {
+  hit <- choices[grepl(label_pattern, choices, ignore.case = TRUE)]
+  if (length(hit) > 0L) return(hit[1])
+
+  if (!is.null(numeric_pattern)) {
+    hit <- choices[grepl(numeric_pattern, choices, perl = TRUE)]
+    if (length(hit) > 0L) return(hit[1])
+  }
+
+  fallback
+}
+
 derive_gcs_severity <- function(gcs, choices) {
   gcs <- safe_numeric(gcs, NA)
   if (!is.finite(gcs)) return(choices[1])
-  if (gcs >= 13) return(first_or(choices[grepl("mild|13", choices, ignore.case = TRUE)], choices[1]))
-  if (gcs >= 9) return(first_or(choices[grepl("moderate|9", choices, ignore.case = TRUE)], choices[1]))
-  hit <- choices[grepl("severe|3", choices, ignore.case = TRUE)][1]
-  ifelse(is.na(hit), choices[1], hit)
+
+  if (gcs >= 13) {
+    return(match_choice(choices, "mild", "(^|[^0-9])13([^0-9]|$)"))
+  }
+  if (gcs >= 9) {
+    return(match_choice(choices, "moderate", "(^|[^0-9])9([^0-9]|$)"))
+  }
+
+  match_choice(choices, "severe", "(^|[^0-9])3([^0-9]|$)")
 }
 
 calculate_gcs_total <- function(input) {
@@ -680,18 +500,32 @@ calculate_gcs_total <- function(input) {
 derived_value <- function(v, row, input) {
   choices <- split_choices(row$choices, c("0", "1"))
 
-  if (v == "age_group_aug") return(derive_age_group(input[[input_id("age")]], choices))
-  if (v == "gcs_total_aug") return(calculate_gcs_total(input))
-  if (v == "gcs_severity_aug") return(derive_gcs_severity(calculate_gcs_total(input), choices))
-  if (v == "hypotension_sbp90_aug") return(as.integer(safe_numeric(input[[input_id("sbp_clean")]], 999) < 90))
-  if (v == "hypoxia_spo2_90_aug") return(as.integer(safe_numeric(input[[input_id("spo2_clean")]], 999) <= 90))
-  if (v == "tachycardia_120_aug") return(as.integer(safe_numeric(input[[input_id("pulse_clean")]], 0) >= 120))
+  if (v == "age_group_aug") {
+    return(derive_age_group(input[[input_id("age")]], choices))
+  }
+  if (v == "gcs_total_aug") {
+    return(calculate_gcs_total(input))
+  }
+  if (v == "gcs_severity_aug") {
+    return(derive_gcs_severity(calculate_gcs_total(input), choices))
+  }
+  if (v == "hypotension_sbp90_aug") {
+    return(as.integer(safe_numeric(input[[input_id("sbp_clean")]], 999) < 90))
+  }
+  if (v == "hypoxia_spo2_90_aug") {
+    return(as.integer(safe_numeric(input[[input_id("spo2_clean")]], 999) <= 90))
+  }
+  if (v == "tachycardia_120_aug") {
+    return(as.integer(safe_numeric(input[[input_id("pulse_clean")]], 0) >= 120))
+  }
   if (v == "abnormal_rr_aug") {
     rr <- safe_numeric(input[[input_id("rr_clean")]], 16)
     return(as.integer(rr < 10 | rr > 29))
   }
 
-  if (v == "dx_any_s06_intracranial") return(1L)
+  if (v == "dx_any_s06_intracranial") {
+    return(1L)
+  }
 
   if (v == "n_preexisting_conditions") {
     return(
@@ -703,10 +537,12 @@ derived_value <- function(v, row, input) {
     )
   }
 
-  ich_any <- get_yesno(input, "dx_focal_contusion_or_iph") |
-    get_yesno(input, "dx_epidural_hematoma") |
-    get_yesno(input, "dx_subdural_hematoma") |
+  intracranial_hemorrhage <- any(c(
+    get_yesno(input, "dx_focal_contusion_or_iph"),
+    get_yesno(input, "dx_epidural_hematoma"),
+    get_yesno(input, "dx_subdural_hematoma"),
     get_yesno(input, "dx_subarachnoid_hemorrhage")
+  ) == 1L)
 
   intracranial_pattern_count <- sum(c(
     get_yesno(input, "dx_concussion"),
@@ -718,87 +554,35 @@ derived_value <- function(v, row, input) {
     get_yesno(input, "dx_subarachnoid_hemorrhage"),
     get_yesno(input, "dx_other_intracranial_injury"),
     get_yesno(input, "dx_brain_compression_herniation")
-  ), na.rm = TRUE)
+  ))
 
-  if (v == "dx_intracranial_hemorrhage_any") return(as.integer(ich_any))
-  if (v == "dx_multiple_intracranial_patterns") return(as.integer(intracranial_pattern_count >= 2))
+  if (v == "dx_intracranial_hemorrhage_any") {
+    return(as.integer(intracranial_hemorrhage))
+  }
+  if (v == "dx_multiple_intracranial_patterns") {
+    return(as.integer(intracranial_pattern_count >= 2L))
+  }
 
-  face_any <- ext_any(input, "face")
-  thorax_any <- ext_any(input, "thorax")
-  abdomen_any <- ext_any(input, "abdomen")
-  spine_any <- ext_any(input, "spine")
-  upper_any <- ext_any(input, "upper_ext")
-  lower_any <- ext_any(input, "lower_ext")
-  external_any <- ext_any(input, "external")
+  extracranial_region_count <- sum(c(
+    get_yesno(input, "dx_facial_fracture"),
+    get_yesno(input, "dx_spinal_cord_injury"),
+    get_yesno(input, "dx_thoracic_injury"),
+    get_yesno(input, "dx_abdominal_pelvic_injury"),
+    get_yesno(input, "dx_upper_extremity_injury"),
+    get_yesno(input, "dx_lower_extremity_injury")
+  ))
 
-  face_sev <- ext_severe(input, "face")
-  thorax_sev <- ext_severe(input, "thorax")
-  abdomen_sev <- ext_severe(input, "abdomen")
-  spine_sev <- ext_severe(input, "spine")
-  upper_sev <- ext_severe(input, "upper_ext")
-  lower_sev <- ext_severe(input, "lower_ext")
+  polyregion_count <- 1L + extracranial_region_count
 
-  if (v == "dx_facial_fracture") return(face_any)
-  if (v == "dx_thoracic_injury") return(thorax_any)
-  if (v == "dx_abdominal_pelvic_injury") return(abdomen_any)
-  if (v == "dx_spinal_cord_injury") return(spine_any)
-  if (v == "dx_neck_vascular_injury") return(0L)
-  if (v == "dx_upper_extremity_injury") return(upper_any)
-  if (v == "dx_lower_extremity_injury") return(lower_any)
-
-  dx_poly_count <- 1L + face_any + thorax_any + abdomen_any + spine_any + upper_any + lower_any
-  if (v == "dx_polyregion_injury_count") return(dx_poly_count)
-  if (v == "dx_polyregion_2plus") return(as.integer(dx_poly_count >= 2))
-  if (v == "dx_polyregion_3plus") return(as.integer(dx_poly_count >= 3))
-
-  max_head <- safe_numeric(input[[input_id("max_head_ais_clean")]], 1)
-  max_extra <- safe_numeric(input[[input_id("max_extracranial_ais_clean")]], 0)
-  max_overall <- max(max_head, max_extra, na.rm = TRUE)
-
-  if (v == "max_overall_ais_aug") return(max_overall)
-  if (v == "severe_head_ais3_aug") return(as.integer(max_head >= 3))
-  if (v == "critical_head_ais5_aug") return(as.integer(max_head >= 5))
-  if (v == "severe_tbi_ais3_src_aug") return(as.integer(max_head >= 3))
-
-  severe_extra <- as.integer(max_extra >= 3 | any(c(face_sev, thorax_sev, abdomen_sev, spine_sev, upper_sev, lower_sev) == 1))
-  any_extra <- as.integer(max_extra > 0 | any(c(face_any, thorax_any, abdomen_any, spine_any, upper_any, lower_any, external_any) == 1))
-
-  if (v == "severe_extracranial_ais3_aug") return(severe_extra)
-  if (v == "severe_extracranial_ais3_src_aug") return(severe_extra)
-  if (v == "any_extracranial_injury_aug") return(any_extra)
-  if (v == "isolated_tbi_derived_aug") return(as.integer(severe_extra == 0))
-
-  head_code_count <- max(1L, intracranial_pattern_count + get_yesno(input, "dx_skull_fracture_any"))
-  extracranial_count <- face_any + thorax_any + abdomen_any + spine_any + upper_any + lower_any + external_any
-
-  if (v == "n_head_ais_codes") return(head_code_count)
-  if (v == "n_extracranial_ais_codes") return(extracranial_count)
-  if (v == "n_total_ais_codes_aug") return(head_code_count + extracranial_count)
-
-  if (v == "ais_face_any") return(face_any)
-  if (v == "ais_thorax_any") return(thorax_any)
-  if (v == "ais_abdomen_any") return(abdomen_any)
-  if (v == "ais_spine_any") return(spine_any)
-  if (v == "ais_upper_ext_any") return(upper_any)
-  if (v == "ais_lower_ext_any") return(lower_any)
-  if (v == "ais_external_any") return(external_any)
-
-  if (v == "ais_headneck_severe3") return(as.integer(max_head >= 3))
-  if (v == "ais_face_severe3") return(face_sev)
-  if (v == "ais_thorax_severe3") return(thorax_sev)
-  if (v == "ais_abdomen_severe3") return(abdomen_sev)
-  if (v == "ais_spine_severe3") return(spine_sev)
-  if (v == "ais_upper_ext_severe3") return(upper_sev)
-  if (v == "ais_lower_ext_severe3") return(lower_sev)
-
-  ais_region_count <- as.integer(max_head > 0) + face_any + thorax_any + abdomen_any + spine_any + upper_any + lower_any + external_any
-  ais_severe_count <- as.integer(max_head >= 3) + face_sev + thorax_sev + abdomen_sev + spine_sev + upper_sev + lower_sev
-
-  if (v == "ais_region_count") return(ais_region_count)
-  if (v == "ais_severe_region_count") return(ais_severe_count)
-  if (v == "ais_polyregion_2plus") return(as.integer(ais_region_count >= 2))
-  if (v == "ais_polyregion_3plus") return(as.integer(ais_region_count >= 3))
-  if (v == "ais_severe_polyregion_2plus") return(as.integer(ais_severe_count >= 2))
+  if (v == "dx_polyregion_injury_count") {
+    return(polyregion_count)
+  }
+  if (v == "dx_polyregion_2plus") {
+    return(as.integer(polyregion_count >= 2L))
+  }
+  if (v == "dx_polyregion_3plus") {
+    return(as.integer(polyregion_count >= 3L))
+  }
 
   row$default
 }
@@ -813,9 +597,8 @@ make_one_row <- function(input, predictors) {
   for (v in predictors) {
     row <- metadata[variable == v][1]
 
-    if (nrow(row) == 0) {
-      out[[v]] <- 0
-      next
+    if (nrow(row) == 0L) {
+      stop("Missing metadata for predictor: ", v, call. = FALSE)
     }
 
     val <- input[[input_id(v)]]
@@ -832,7 +615,7 @@ make_one_row <- function(input, predictors) {
       choices <- split_choices(row$choices, c("0", "1"))
       val <- as.character(ifelse(safe_int01(val) == 1L, "1", "0"))
       out[[v]] <- factor(val, levels = choices)
-    } else if (input_type %in% c("gcs_select", "ais_severity")) {
+    } else if (input_type == "gcs_select") {
       out[[v]] <- safe_numeric(val, safe_numeric(row$default, 0))
     } else {
       choices <- split_choices(row$choices, as.character(row$default))
@@ -851,14 +634,14 @@ align_matrix <- function(newdata, predictors, feature_names) {
   mm <- Matrix::sparse.model.matrix(f, data = newdata, na.action = stats::na.pass)
 
   missing_cols <- setdiff(feature_names, colnames(mm))
-  if (length(missing_cols) > 0) {
+  if (length(missing_cols) > 0L) {
     z <- Matrix::Matrix(0, nrow = nrow(mm), ncol = length(missing_cols), sparse = TRUE)
     colnames(z) <- missing_cols
     mm <- cbind(mm, z)
   }
 
   extra_cols <- setdiff(colnames(mm), feature_names)
-  if (length(extra_cols) > 0) {
+  if (length(extra_cols) > 0L) {
     mm <- mm[, setdiff(colnames(mm), extra_cols), drop = FALSE]
   }
 
@@ -867,8 +650,7 @@ align_matrix <- function(newdata, predictors, feature_names) {
 
 predict_binary <- function(obj, input, fallback_predictors) {
   model <- get_model(obj)
-  predictors <- obj$predictors
-  if (is.null(predictors)) predictors <- fallback_predictors
+  predictors <- obj$predictors %||% fallback_predictors
   feature_names <- obj$feature_names
 
   if (is.null(feature_names)) stop("Binary model is missing feature_names.")
@@ -881,15 +663,22 @@ predict_binary <- function(obj, input, fallback_predictors) {
 
 predict_multiclass <- function(obj, input, fallback_predictors) {
   model <- get_model(obj)
-  predictors <- obj$predictors
-  if (is.null(predictors)) predictors <- fallback_predictors
+  predictors <- obj$predictors %||% fallback_predictors
   feature_names <- obj$feature_names
-  class_levels <- obj$class_levels
-  if (is.null(class_levels)) class_levels <- discharge_levels
+  class_levels <- obj$class_levels %||% discharge_levels
+
+  if (is.null(feature_names)) {
+    stop("Multiclass model is missing feature_names.")
+  }
 
   newdata <- make_one_row(input, predictors)
   mm <- align_matrix(newdata, predictors, feature_names)
   raw <- as.numeric(predict(model, xgb.DMatrix(mm)))
+
+  if (length(raw) != length(class_levels)) {
+    stop("Multiclass prediction length does not match the configured class levels.")
+  }
+
   data.table(class = class_levels, probability = raw)
 }
 
@@ -978,16 +767,6 @@ gcs_eye_choices <- c("1 - None" = "1", "2 - To pain" = "2", "3 - To speech" = "3
 gcs_motor_choices <- c("1 - None" = "1", "2 - Extension" = "2", "3 - Flexion" = "3", "4 - Withdraws" = "4", "5 - Localizes" = "5", "6 - Obeys commands" = "6")
 gcs_verbal_choices <- c("1 - None" = "1", "2 - Incomprehensible" = "2", "3 - Inappropriate words" = "3", "4 - Confused" = "4", "5 - Oriented" = "5")
 
-ais_choices <- c(
-  "0 - None" = "0",
-  "1 - Minor" = "1",
-  "2 - Moderate" = "2",
-  "3 - Serious" = "3",
-  "4 - Severe" = "4",
-  "5 - Critical" = "5",
-  "6 - Maximal" = "6"
-)
-
 choice_display_label <- function(variable, value) {
   value <- as.character(value)
   if (variable == "mechanism_clean" && value == "Transport/MVC") return("Transport-related injury")
@@ -997,20 +776,6 @@ choice_display_label <- function(variable, value) {
 labelled_choices <- function(variable, choices) {
   choices <- choices[!is.na(choices) & choices != ""]
   stats::setNames(choices, vapply(choices, function(x) choice_display_label(variable, x), character(1)))
-}
-
-extracranial_severity_control <- function(id, label) {
-  selectInput(
-    inputId = paste0("ui__", id, "_severity"),
-    label = label,
-    choices = c(
-      "None" = "none",
-      "Minor/moderate injury" = "minor_moderate",
-      "Serious/severe/critical injury" = "severe"
-    ),
-    selected = "none",
-    selectize = FALSE
-  )
 }
 
 make_input_control <- function(row) {
@@ -1035,12 +800,10 @@ make_input_control <- function(row) {
       gcs_motor_clean = gcs_motor_choices,
       gcs_verbal_clean = gcs_verbal_choices
     )
-    if (is.null(choices) || length(choices) == 0) {
+    if (is.null(choices) || length(choices) == 0L) {
       choices <- split_choices(row$choices, as.character(row$default))
     }
     selectInput(id, row$label, choices = choices, selected = as.character(row$default), selectize = FALSE)
-  } else if (input_type == "ais_severity") {
-    selectInput(id, row$label, choices = ais_choices, selected = as.character(row$default), selectize = FALSE)
   } else if (input_type == "yesno") {
     selectInput(id, row$label, choices = c("No" = "0", "Yes" = "1"), selected = "0", selectize = FALSE)
   } else if (input_type == "count_select") {
@@ -1056,7 +819,7 @@ make_input_control <- function(row) {
 
 input_group_ui <- function(group_name, allowed_vars = visible_vars) {
   rows <- metadata[group == group_name & input_type != "derived" & variable %in% allowed_vars][order(app_order)]
-  if (nrow(rows) == 0) return(NULL)
+  if (nrow(rows) == 0L) return(NULL)
 
   controls <- lapply(seq_len(nrow(rows)), function(i) {
     make_input_control(rows[i])
@@ -1068,19 +831,6 @@ input_group_ui <- function(group_name, allowed_vars = visible_vars) {
   }
 
   do.call(accordion_panel, c(list(title = group_name), controls))
-}
-
-extracranial_profile_ui <- function() {
-  accordion_panel(
-    title = "Major extracranial injury profile",
-    extracranial_severity_control("face", "Face injury severity"),
-    extracranial_severity_control("thorax", "Thoracic injury severity"),
-    extracranial_severity_control("abdomen", "Abdominal/pelvic injury severity"),
-    extracranial_severity_control("spine", "Spine/spinal cord injury severity"),
-    extracranial_severity_control("upper_ext", "Upper extremity injury severity"),
-    extracranial_severity_control("lower_ext", "Lower extremity injury severity"),
-    extracranial_severity_control("external", "External/skin injury severity")
-  )
 }
 
 # ------------------------------------------------------------
@@ -1314,6 +1064,47 @@ result_section <- function(title, note, cards, grid_class = "") {
   )
 }
 
+order_discharge_results <- function(discharge) {
+  preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
+  discharge <- copy(discharge)
+  discharge[, ord := match(class, preferred)]
+  discharge[is.na(ord), ord := 99L]
+  discharge[order(ord, -probability)]
+}
+
+make_discharge_cards <- function(discharge) {
+  discharge <- order_discharge_results(discharge)
+  lapply(seq_len(nrow(discharge)), function(i) {
+    result_card(
+      name = discharge$class[i],
+      probability = discharge$probability[i],
+      type_class = "result-disposition"
+    )
+  })
+}
+
+endpoint_subtext <- function(subtext, available, quick_mode = FALSE) {
+  pieces <- character(0)
+  if (!is.na(subtext) && nzchar(subtext)) pieces <- c(pieces, subtext)
+  if (!isTRUE(available)) pieces <- c(pieces, "Model unavailable in model bundle")
+  if (isTRUE(available) && quick_mode) pieces <- c(pieces, "Endpoint-specific Quick Mode")
+
+  if (length(pieces) == 0L) NULL else paste(pieces, collapse = " · ")
+}
+
+make_binary_cards <- function(dat, quick_mode = FALSE) {
+  if (nrow(dat) == 0L) return(list())
+
+  lapply(seq_len(nrow(dat)), function(i) {
+    result_card(
+      name = dat$outcome[i],
+      probability = dat$probability[i],
+      type_class = dat$type_class[i],
+      subtext = endpoint_subtext(dat$subtext[i], dat$available[i], quick_mode)
+    )
+  })
+}
+
 # ------------------------------------------------------------
 # Server
 # ------------------------------------------------------------
@@ -1361,22 +1152,16 @@ server <- function(input, output, session) {
 
   output$dynamic_inputs <- renderUI({
     allowed <- current_allowed_vars()
-    mode <- selected_mode()
-    ep <- if (mode == "full") "all" else selected_endpoint()
 
     panels <- list(
       input_group_ui("Demographics", allowed),
       input_group_ui("Transfer and mechanism", allowed),
       input_group_ui("Neurologic status", allowed),
       input_group_ui("Vital signs and respiratory support", allowed),
-      input_group_ui("Injury burden", allowed),
       input_group_ui("Comorbidities", allowed),
-      input_group_ui("Intracranial injury pattern", allowed)
+      input_group_ui("Intracranial injury pattern", allowed),
+      input_group_ui("Extracranial injury pattern", allowed)
     )
-
-    if (needs_extracranial_profile(ep, mode)) {
-      panels <- c(panels, list(extracranial_profile_ui()))
-    }
 
     panels <- panels[!vapply(panels, is.null, logical(1))]
 
@@ -1395,8 +1180,7 @@ server <- function(input, output, session) {
       sbp_clean = c(0, 300),
       pulse_clean = c(0, 250),
       rr_clean = c(0, 80),
-      spo2_clean = c(0, 100),
-      iss_clean = c(1, 75)
+      spo2_clean = c(0, 100)
     )
 
     for (v in names(bounds)) {
@@ -1474,84 +1258,26 @@ server <- function(input, output, session) {
 
     if (results()$mode == "quick") {
       if (results()$endpoint == "discharge") {
-        disp <- copy(results()$discharge)
-        preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
-        disp[, ord := match(class, preferred)]
-        disp[is.na(ord), ord := 99L]
-        disp <- disp[order(ord, -probability)]
-
-        disp_cards <- lapply(seq_len(nrow(disp)), function(i) {
-          result_card(
-            name = disp$class[i],
-            probability = disp$probability[i],
-            type_class = "result-disposition"
-          )
-        })
-
         return(result_section(
           title = "Discharge disposition",
           note = "Quick Mode · Mutually exclusive",
-          cards = disp_cards
+          cards = make_discharge_cards(results()$discharge)
         ))
       }
 
       bin <- copy(results()$binary)
-      if (nrow(bin) == 0) return(NULL)
-
-      subtext <- bin$subtext[1]
-      if (!isTRUE(bin$available[1])) {
-        subtext <- ifelse(is.na(subtext), "Model not found in uploaded model bundle", paste(subtext, "· Model not found in uploaded model bundle"))
-      } else {
-        subtext <- paste0(
-          ifelse(is.na(subtext), "", paste0(subtext, " · ")),
-          "Endpoint-specific Quick Mode"
-        )
-      }
+      if (nrow(bin) == 0L) return(NULL)
 
       return(result_section(
         title = bin$outcome[1],
         note = "Selected endpoint",
-        cards = list(result_card(
-          name = bin$outcome[1],
-          probability = bin$probability[1],
-          type_class = bin$type_class[1],
-          subtext = subtext
-        )),
+        cards = make_binary_cards(bin, quick_mode = TRUE),
         grid_class = "one"
       ))
     }
 
-    disp <- copy(results()$discharge)
-    preferred <- c("Home/home health", "Post-acute facility", "Death/hospice")
-    disp[, ord := match(class, preferred)]
-    disp[is.na(ord), ord := 99L]
-    disp <- disp[order(ord, -probability)]
-
-    disp_cards <- lapply(seq_len(nrow(disp)), function(i) {
-      result_card(
-        name = disp$class[i],
-        probability = disp$probability[i],
-        type_class = "result-disposition"
-      )
-    })
-
+    disp_cards <- make_discharge_cards(results()$discharge)
     bin <- copy(results()$binary)
-
-    make_cards <- function(dat) {
-      if (nrow(dat) == 0) return(list())
-      lapply(seq_len(nrow(dat)), function(i) {
-        subtext <- dat$subtext[i]
-        if (!isTRUE(dat$available[i])) {
-          subtext <- ifelse(is.na(subtext), "Model not found in uploaded model bundle", paste(subtext, "· Model not found in uploaded model bundle"))
-        }
-        result_card(
-          name = dat$outcome[i],
-          probability = dat$probability[i],
-          type_class = dat$type_class[i],
-          subtext = subtext
-        )
-      })
-    }
 
     acute <- bin[section == "Acute utilization"]
     neuro <- bin[section == "Neurosurgical resource utilization"]
@@ -1566,19 +1292,19 @@ server <- function(input, output, session) {
       result_section(
         title = "Acute utilization",
         note = "Independent binary estimates",
-        cards = make_cards(acute),
+        cards = make_binary_cards(acute),
         grid_class = "two"
       ),
       result_section(
         title = "Neurosurgical resource utilization",
         note = "Independent binary estimates",
-        cards = make_cards(neuro),
+        cards = make_binary_cards(neuro),
         grid_class = "two"
       ),
       result_section(
         title = "Prolonged utilization",
         note = "Independent binary estimates",
-        cards = make_cards(prolonged)
+        cards = make_binary_cards(prolonged)
       )
     )
   })
