@@ -1,5 +1,12 @@
 # Code and data availability
 
-The analytic workflow used for cohort construction, predictor harmonization, temporal model development/evaluation, sensitivity analyses, calibration/QC, and manuscript output generation is provided in this repository to the extent recoverable from the locked working project. The ACS TQIP/TQP Participant Use Files are not redistributed and must be obtained independently under applicable ACS data-use terms. No patient-level TQIP/TQP data are included.
+This repository provides the analysis code used for cohort construction, endpoint and predictor definition, temporal model development, sensitivity analyses, deployment fitting, manuscript metrics, reproducibility checks, and figure generation for TBI-TRACT.
 
-The original source file for the classification predictor-family stress test (working script 18) was not recoverable from the retained export used to assemble this release. Its complete manuscript-facing summary outputs and downstream dependencies are retained in the project archive, and this limitation is explicitly documented rather than reconstructing unverified source code.
+The ACS TQIP/TQP Participant Use Files are not redistributed. Reproduction requires independent access to the applicable 2020–2024 source files under the relevant ACS data-use terms. No patient-level TQIP/TQP records are included in this repository.
+
+Two archival limitations are documented explicitly:
+
+1. The original R source file for the classification predictor-family ablation was not retained in the archived analysis project. The complete manuscript-facing output set from that analysis is included under `analytic_pipeline/03_sensitivity/predictor_ablation/`; no reconstructed source code is presented.
+2. The exact script used to assemble the final Word table/eTable document was not retained. The final table/eTable file is included under `analytic_pipeline/05_reporting/` as a reference output.
+
+These archival limitations do not affect the deployed model objects, endpoint definitions, reported manuscript metrics, or the figure-generation workflow.

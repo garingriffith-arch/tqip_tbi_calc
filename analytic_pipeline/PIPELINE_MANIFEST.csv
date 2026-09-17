@@ -1,22 +1,22 @@
-order,stage,script,status,purpose,included_in_this_bundle
-00,Local configuration,R/00_config.R,REQUIRED LOCAL,Defines local data/output paths; copy from 00_config.example.R.,No
-01,Cohort construction + harmonization,ADD_FROM_LOCAL_REPO,REQUIRED BEFORE PUBLIC RELEASE,Builds harmonized 2020-2024 adult TBI analytic cohort from locally obtained ACS TQIP/TQP PUFs; this source script was not available in the chat export used to build this package.,No
-02,Methods-completion / cohort-flow audit,ADD_FROM_LOCAL_REPO,REQUIRED BEFORE PUBLIC RELEASE,"Final inclusion/exclusion flow, direct-presentation observation status, case-mix SMD audit, threshold context, and frozen predictor types.",No
-03,Temporal hyperparameter tuning,analysis/09_TBI_TRACT_temporal_hyperparameter_tuning_v3.R,REQUIRED,Prespecified structural grid and forward temporal tuning.,Yes
-04,Ventilation trajectory development,analysis/13_run_FINAL_TBI_TRACT_ventilation_trajectory_v2.R,HISTORICAL DEVELOPMENT,Intermediate trajectory model used during architecture development.,Yes
-05,Hybrid resource model,analysis/14_run_FINAL_TBI_TRACT_hybrid_resource_model_GPU_v2.R,HISTORICAL DEVELOPMENT,Intermediate hybrid categorical + continuous resource architecture.,Yes
-06,COVID-era sensitivity,sensitivity/17_run_FINAL_TBI_TRACT_hybrid_COVID_era_sensitivity_GPU_v4.R,SUPPLEMENTARY,Temporal/COVID-era development sensitivity.,Yes
-07,Predictor-family classification stress test,ADD_FROM_LOCAL_REPO,REQUIRED BEFORE PUBLIC RELEASE,Final predictor-family ablation analysis (script 18 in the working project).,No
-08,Duration stress test,sensitivity/19_run_TBI_TRACT_duration_stress_test_GPU_v2.R,SUPPLEMENTARY,Predictor-family stress testing for duration outputs.,Yes
-09,Sociodemographic augmentation stress test,sensitivity/20_run_TBI_TRACT_demographic_augmentation_stress_test_GPU_v2.R,SUPPLEMENTARY / HISTORICAL,Early race/ethnicity/payer augmentation analysis; superseded for classification conclusions by final retuning.,Yes
-10,Finalist classification retune,sensitivity/21_run_TBI_TRACT_finalist_classification_retune_GPU.R,SUPPLEMENTARY,Properly retuned clinical/social finalist comparison across 2022-2024.,Yes
-11,Exact lean duration test,sensitivity/22_run_TBI_TRACT_exact_lean_duration_test_GPU_v2.R,HISTORICAL DEVELOPMENT,Exact duration test of the broader lean candidate; informs final pragmatic backbone.,Yes
-12,Pragmatic final classification retune,sensitivity/23_run_TBI_TRACT_pragmatic_finalist_retune_GPU.R,REQUIRED,Final pragmatic clinical backbone and endpoint-specific social/context augmentation.,Yes
-13,Pragmatic duration finalization,sensitivity/24_run_TBI_TRACT_pragmatic_duration_finalization_GPU.R,REQUIRED,Final continuous-duration backbone testing.,Yes
-14,Final sensitivity suite,sensitivity/25_run_TBI_TRACT_final_sensitivity_suite_GPU.R,REQUIRED,GCS/age/sex/missingness robustness; airway-state sensitivity; early-death sensitivities; final prediction cache.,Yes
-15,Penalized-regression comparator,ADD_FROM_LOCAL_REPO,REQUIRED BEFORE PUBLIC RELEASE,XGBoost vs ridge comparator (working scripts 16/16b).,No
-16,Full-development deployment fit,deployment/26_run_TBI_TRACT_deployment_temporal_CV_GPU_v2.R,REQUIRED FOR APP/MODEL OBJECTS,Temporal-consensus structural selection; 5-fold CV only for boosting-round selection; fit on all 2020-2024.,Yes
-17,HLOS deployment CV extension,deployment/26b_extend_TBI_TRACT_hospital_LOS_deployment_CV_GPU.R,REQUIRED FOR APP/MODEL OBJECTS,Targeted extension because HLOS quantile CV reached the original 2500-round cap.,Yes
-18,Canonical manuscript metrics,reporting/27_build_TBI_TRACT_manuscript_output_data.R,REQUIRED,Builds manuscript-facing metrics and calibration data exclusively from locked rolling-origin prediction caches.,Yes
-19,Final figure generation,reporting/29_build_TBI_TRACT_final_figures_REFINED.R,REQUIRED FOR FIGURES,Publication figure generation from canonical output files.,Yes
-20,Final table generation,ADD_FROM_LOCAL_REPO,RECOMMENDED BEFORE PUBLIC RELEASE,Publication table/eTable generator once frozen.,No
+step,stage,path,role,manuscript_relevance,notes
+01,Cohort construction,01_cohort/01_recover_registry_fields.R,Primary,Required,"Recovers source fields needed downstream and repairs final disposition when hospital disposition is absent."
+02,Cohort construction,01_cohort/02_adjudicate_cohort_and_predictors.R,Primary,Required,"Constructs the candidate adult TBI cohort and adjudicates candidate predictors."
+03,Cohort construction,01_cohort/03_freeze_analysis_dataset.R,Primary,Required,"Reconciles final inclusion/exclusion flow; defines manuscript endpoints; saves the frozen analysis dataset and predictor types."
+04,Endpoint verification,01_cohort/04_verify_icp_endpoint.R,QC,Required,"Verifies that invasive ICP monitoring is defined as EVD or intraparenchymal bolt only."
+05,Model development,02_model_development/05_temporal_hyperparameter_tuning.R,Primary,Required,"Evaluates the prespecified XGBoost structural grid using rolling-origin temporal folds."
+06,Model development,02_model_development/06_select_classification_predictors.R,Primary,Required,"Selects the final classification predictor policy and endpoint-specific contextual predictors."
+07,Model development,02_model_development/07_select_duration_predictors.R,Primary,Required,"Selects the final predictor policy for continuous duration models."
+08,Sensitivity analysis,03_sensitivity/08_covid_period_sensitivity.R,Supplementary,Reported,"Evaluates temporal/COVID-period sensitivity."
+09,Sensitivity analysis,03_sensitivity/09_duration_predictor_ablation.R,Supplementary,Reported,"Evaluates continuous-duration sensitivity to predictor-family removal; depends on classification ablation outputs supplied in 03_sensitivity/predictor_ablation/results/."
+10,Sensitivity analysis,03_sensitivity/10_final_robustness_analyses.R,Primary/Supporting,Reported,"Generates subgroup, airway-state, survivor-only, composite-outcome, and prediction-cache analyses."
+11,Deployment,04_deployment/11_fit_deployment_models.R,Primary,App,"Fits final 2020-2024 deployment models after predictor policies and structural settings are fixed."
+12,Deployment,04_deployment/12_extend_hospital_los_cv.R,Primary,App,"Extends boosting-round selection for hospital LOS after the initial search reached its round cap."
+13,Deployment,04_deployment/13_reconcile_hospital_los_manifest.R,QC,App,"Verifies and reconciles the final 4,341-round hospital-LOS deployment metadata."
+14,Reporting,05_reporting/14_build_manuscript_metrics.R,Primary,Required,"Builds manuscript-facing temporal performance and calibration outputs from final prediction caches."
+15,Reporting,05_reporting/15_build_reporting_qc.R,QC,Required,"Produces cohort-flow, missingness, reproducibility, and reporting QC outputs."
+16,Comparator,05_reporting/16_compare_ridge_baseline.R,Supplementary,Reported,"Fits the Ridge comparator using matched development/evaluation cohorts and endpoint-specific predictor policies."
+17,Reporting,05_reporting/17_build_figures.R,Primary,Required,"Generates the manuscript figure package from final reporting artifacts."
+NA,Supporting output,03_sensitivity/predictor_ablation/results/,Supporting,Reported,"Complete manuscript-facing classification predictor-ablation outputs; original source file was not retained in the archived project."
+NA,Reporting artifact,05_reporting/model_artifact_checksums.csv,Supporting,Required,"Checksums for final deployment model and encoder artifacts."
+NA,Reporting artifact,05_reporting/TBI_TRACT_tables_and_etables.docx,Supporting,Required,"Final table/eTable reference output; exact historical Word-assembly script was not retained."
+NA,Development archive,archive/development_history/,Archive,Not primary,"Superseded intermediate experiments retained for provenance only."

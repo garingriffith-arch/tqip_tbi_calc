@@ -1,27 +1,21 @@
-# TBI-TRACT Shiny entrypoint
+# TBI-TRACT Shiny entry point
 #
-# The full application implementation is preserved in app_core.R. This wrapper
-# applies small presentation/compatibility overrides without changing the locked
-# model objects, encoder values, or prediction logic.
+# app_core.R contains model loading, prediction logic, input validation, and
+# result rendering. This file defines clinician-facing menu labels/order while
+# preserving the encoder values expected by the deployed models.
 
 suppressPackageStartupMessages(library(shiny))
 
-# Compatibility alias: Shiny's constructor is numericInput().
+# app_core.R historically used numberInput() for numeric controls. Keep this
+# alias so the deployed implementation remains backward-compatible with Shiny's
+# numericInput() constructor.
 numberInput <- shiny::numericInput
 
-# Load the locked application implementation into this environment. The server
-# function created by app_core.R resolves helpers from this same environment at
-# runtime, so the clinician-facing ordering overrides below are used by renderUI.
 app <- source("app_core.R", local = TRUE)$value
 
 # -----------------------------------------------------------------------------
 # Clinician-facing categorical menus
 # -----------------------------------------------------------------------------
-# Keep encoder values unchanged while presenting categories in a deliberate,
-# clinically readable order. Internal __OTHER__ is not exposed when a real
-# observed "Other" category exists; __UNKNOWN__ remains the user-facing unknown
-# state. Supplemental oxygen intentionally exposes __OTHER__ as "Other" because
-# the desired clinical control is Yes / No / Other / Unknown.
 
 choice_display_label <- function(v, raw_value) {
   raw_value <- as.character(raw_value)
@@ -43,7 +37,6 @@ choice_display_label <- function(v, raw_value) {
 choice_rank <- function(v, label) {
   x <- tolower(trimws(as.character(label)))
 
-  # Unknown is always last; generic/internal other is immediately before it.
   if (grepl("unknown|not recorded", x)) return(990L)
   if (x %in% c("other", "other / not listed")) return(950L)
 
@@ -110,19 +103,20 @@ ordered_categorical_choices <- function(v, levels) {
   lev <- unique(as.character(levels))
   if (!length(lev)) lev <- "__UNKNOWN__"
 
-  # Prefer the model's explicit unknown sentinel for an unrecorded value.
+  # Prefer the model's explicit unknown sentinel when duplicate unknown labels
+  # exist in the training encoder.
   if ("__UNKNOWN__" %in% lev) {
-    is_other_unknown <- vapply(
+    duplicate_unknown <- vapply(
       lev,
       function(z) z != "__UNKNOWN__" && pretty_level(z) == "Unknown / not recorded",
       logical(1)
     )
-    lev <- lev[!is_other_unknown]
+    lev <- lev[!duplicate_unknown]
   }
 
-  # __OTHER__ is an encoder safety net, not a clinical response option. Hide it
-  # whenever possible. Supplemental oxygen is the one deliberate exception so
-  # the interface can offer Yes / No / Other / Unknown as requested.
+  # __OTHER__ is an encoder fallback rather than a clinical response option.
+  # Supplemental oxygen is the deliberate exception because the interface uses
+  # Yes / No / Other / Unknown.
   if (v != "supplemental_oxygen_recovered") {
     lev <- lev[lev != "__OTHER__"]
   }
@@ -133,8 +127,6 @@ ordered_categorical_choices <- function(v, levels) {
     character(1)
   )
 
-  # If two raw levels would display identically, retain the first deliberate
-  # encoder choice only. This avoids duplicate Unknown/Other-looking options.
   keep <- !duplicated(labels_out)
   lev <- lev[keep]
   labels_out <- labels_out[keep]
@@ -145,7 +137,6 @@ ordered_categorical_choices <- function(v, levels) {
   setNames(lev[ord], labels_out[ord])
 }
 
-# Put unknown last in the GCS menus while keeping it selected initially.
 gcs_choices <- list(
   gcs_eye_clean = c(
     "1 - None" = "1",
@@ -173,8 +164,6 @@ gcs_choices <- list(
   )
 )
 
-# Replace only the control-construction presentation layer. Encoder values and
-# prediction preprocessing remain unchanged.
 make_control <- function(v) {
   id <- input_id(v)
   lab <- label_for(v)
@@ -232,7 +221,11 @@ make_control <- function(v) {
       "__UNKNOWN__"
     } else {
       unknown_idx <- which(
-        vapply(vals, function(z) pretty_level(z) == "Unknown / not recorded", logical(1))
+        vapply(
+          vals,
+          function(z) pretty_level(z) == "Unknown / not recorded",
+          logical(1)
+        )
       )
       if (length(unknown_idx)) vals[unknown_idx[1L]] else vals[1L]
     }

@@ -2,15 +2,16 @@
 
 **Trauma Resource and Acute Care Trajectory Calculator for Adults With Traumatic Brain Injury**
 
-This repository contains the deployed TBI-TRACT Shiny application, locked XGBoost model/encoder objects, and the manuscript-facing analytic code package for the 2020–2024 ACS TQIP/TQP study. Patient-level ACS data are not included.
+TBI-TRACT is a multivariable prediction framework for early inpatient trajectory and resource use after traumatic brain injury. This repository contains the Shiny application, final deployment model objects and encoders, and the analysis code supporting the accompanying manuscript.
 
-## Clinical model at a glance
+## Study snapshot
 
-- **Population:** 755,880 direct-presenting adults aged 18–89 years with traumatic intracranial injury and an observable index-hospital trajectory.
-- **Prediction time:** after the initial trauma-center evaluation and diagnostic workup.
-- **Temporal evaluation:** rolling-origin evaluation in 2022, 2023, and 2024; the 2024 cohort contained 151,874 patients.
-- **Outputs:** discharge disposition; hospital LOS trajectory; ICU trajectory; ventilation trajectory; continuous hospital/ICU/ventilator duration; EVD or intraparenchymal ICP bolt utilization; and craniotomy/craniectomy.
-- **Validation status:** internally evaluated temporally; independent external/prospective validation remains pending. The tool supports counseling/resource planning and is not a treatment recommendation engine.
+- **Data source:** ACS TQIP/TQP Participant Use Files, 2020–2024
+- **Analytic cohort:** 755,880 direct-presenting adults aged 18–89 years with traumatic intracranial injury and an observable index-hospital trajectory
+- **Prediction time:** after the initial trauma-center evaluation and diagnostic workup
+- **Internal temporal evaluation:** rolling-origin evaluation cohorts from 2022 through 2024; the 2024 cohort contained 151,874 patients
+- **Outputs:** discharge disposition; hospital length-of-stay trajectory; ICU trajectory; mechanical-ventilation trajectory; continuous hospital, ICU, and ventilator duration; EVD or intraparenchymal ICP bolt utilization; and craniotomy/craniectomy
+- **Validation status:** independent external and prospective validation remain pending
 
 ### Headline 2024 discrimination
 
@@ -26,34 +27,33 @@ This repository contains the deployed TBI-TRACT Shiny application, locked XGBoos
 | EVD or intraparenchymal ICP bolt | 0.925 |
 | Craniotomy/craniectomy | 0.894 |
 
-2024 median-prediction MAE was 4.54 days for hospital LOS, 3.41 days for ICU LOS conditional on ICU use, and 4.79 days for ventilator duration conditional on ventilation.
+For 2024, median-prediction mean absolute error was 4.54 days for hospital LOS, 3.41 days for ICU LOS conditional on ICU use, and 4.79 days for ventilator duration conditional on ventilation.
 
-## App
+## Repository structure
 
-`app.R` loads the locked JSON models under `data/models/` and preprocessing metadata under `data/encoders/`. The interface enforces the study age range and bounded physiologic inputs, collapses duplicate unknown/other encoding sentinels into clinician-readable choices, and performs server-side range validation before prediction.
+- `app.R` — Shiny entry point and clinician-facing input presentation
+- `app_core.R` — application prediction logic, model loading, validation, and output rendering
+- `data/models/` — final XGBoost deployment models
+- `data/encoders/` — endpoint-specific preprocessing metadata and encoder objects
+- `analytic_pipeline/` — numbered manuscript analysis workflow and reproducibility documentation
+- `www/` — application assets
 
-The final predictor policy excludes helmet and respiratory-assistance variables. Race, ethnicity, and payer are used only by disposition and categorical hospital-LOS models as social/health-system context.
+The analysis workflow is documented in [`analytic_pipeline/README.md`](analytic_pipeline/README.md). The numbered files there are ordered by execution rather than by the historical workstation script numbers used during model development.
 
-## Analytic code
+## Reproducibility
 
-The manuscript-facing reproducibility code is maintained in the repository under the analytic-pipeline files/directories. It includes:
+The manuscript reports **internal rolling-origin temporal evaluation**, not random cross-validation and not independent external validation. Structural model choices were assessed across temporally ordered development/evaluation folds. After predictor and endpoint specifications were fixed, deployment models were fit on the full 2020–2024 cohort; internal cross-validation on the full development cohort was used only to choose the number of boosting rounds for deployment.
 
-- raw-field/disposition repair and cohort/predictor adjudication code;
-- final methods-completion and EVD/BOLT endpoint construction/QC;
-- temporal model-development and sensitivity scripts;
-- final deployment fitting and HLOS metadata reconciliation;
-- the canonical Ridge comparator;
-- manuscript metric/QC and final figure-generation code; and
-- the exact final table/eTable reference artifact when distributed with the release package.
+The invasive ICP endpoint is defined as **EVD or intraparenchymal ICP bolt**. Brain-tissue oxygen and jugular venous-bulb monitoring are not included in that endpoint.
 
-The original source file for the classification predictor-family stress test (script 18) was not recoverable from the retained working export. Its manuscript-facing summary outputs are retained separately, and this limitation is documented rather than reconstructing or fabricating historical code.
+Model-file checksums are provided in `analytic_pipeline/05_reporting/model_artifact_checksums.csv`.
 
 ## Data availability
 
-The ACS TQIP/TQP Participant Use Files are not redistributed. Reproduction requires independent access to the applicable 2020–2024 source files and compliance with ACS data-use terms. The repository contains no patient-level TQIP/TQP records.
+The ACS TQIP/TQP Participant Use Files are not redistributed. Reproduction requires independent access to the applicable 2020–2024 source files and compliance with ACS data-use terms. This repository contains no patient-level TQIP/TQP data.
 
-## Reproducibility notes
+## Archival limitations
 
-Manuscript-facing performance comes from rolling-origin forward-temporal evaluation, not random cross-validation. After architecture/predictor policies were locked, final deployment models were fit on 2020–2024; full-development cross-validation was used only to choose boosting rounds for deployment. The final hospital-LOS duration model uses 4,341 boosting rounds.
+One historical source file used for the classification predictor-family ablation was not retained in the archived analysis project. The complete manuscript-facing output set from that analysis is provided under `analytic_pipeline/03_sensitivity/predictor_ablation/`; no reconstructed source code is presented. The exact table-assembly script was also not retained; the final table/eTable document is included as a reference output.
 
-The invasive ICP endpoint is **EVD or intraparenchymal ICP bolt only**. Brain-tissue oxygen and jugular venous-bulb monitoring are not part of the modeled endpoint.
+The prediction tool is intended to support counseling and anticipatory resource planning. It is not a stand-alone basis for treatment decisions.

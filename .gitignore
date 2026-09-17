@@ -1,13 +1,25 @@
 .Rhistory
 .RData
 .Rproj.user/
+
+# Local configuration and patient-level/derived data
+R/00_config.R
 data/raw/
 data/derived/
+output/
+
+# Analysis-generated tabular/intermediate files
 *.csv
 *.xlsx
 *.parquet
 *.feather
 
+# Repository-tracked reproducibility manifests
+!analytic_pipeline/PIPELINE_MANIFEST.csv
+!analytic_pipeline/05_reporting/model_artifact_checksums.csv
+
+# Deployment objects intentionally tracked under data/
 !data/
-!data/model_bundle.rds
+!data/models/
+!data/encoders/
 !data/predictor_metadata.rds
