@@ -1,0 +1,26 @@
+order,stage,script,status,purpose,included_in_public_repo
+00,Local configuration,R/00_config.R,REQUIRED LOCAL,Defines local ACS data/output paths; no patient-level data are distributed.,No
+01,Raw-field/disposition repair,upstream/00d_repair_30min_raw_fields_and_final_disposition.R,REQUIRED,Builds the repaired 2020-2024 patient core from locally obtained ACS TQIP/TQP PUF source files.,Yes
+02,Cohort/predictor adjudication,upstream/04_adjudicate_TBI_TRACT_admission_cohort_and_predictors.R,ARCHIVAL SUPPORT,Audits direct-presentation eligibility and candidate predictor policy; equivalent final cohort/predictor construction is also enforced in script 08.,Pending large-source archival upload
+03,Methods-completion / cohort-flow audit,analysis/08_TBI_TRACT_methods_completion_audit.R,REQUIRED,Final cohort flow; case-mix SMD audit; frozen predictor types; EVD/BOLT-only modeled ICP endpoint.,Yes
+04,Temporal hyperparameter tuning,analysis/09_TBI_TRACT_temporal_hyperparameter_tuning_v3.R,REQUIRED,Prespecified structural grid and forward-temporal tuning.,Available in release bundle
+05,Ventilation trajectory development,analysis/13_run_FINAL_TBI_TRACT_ventilation_trajectory_v2.R,HISTORICAL DEVELOPMENT,Intermediate trajectory architecture.,Available in release bundle
+06,Hybrid resource model,analysis/14_run_FINAL_TBI_TRACT_hybrid_resource_model_GPU_v2.R,HISTORICAL DEVELOPMENT,Intermediate hybrid resource architecture.,Available in release bundle
+07,COVID-era sensitivity,sensitivity/17_run_FINAL_TBI_TRACT_hybrid_COVID_era_sensitivity_GPU_v4.R,SUPPLEMENTARY,Temporal/COVID-era sensitivity.,Available in release bundle
+08,Predictor-family classification stress test,sensitivity/18_PREDICTOR_STRESS_TEST_SOURCE_NOTE.md,OUTPUTS RETAINED; ORIGINAL SOURCE UNRECOVERED,Exact historical script 18 source was not fabricated; limitation documented.,Yes note
+09,Duration stress test,sensitivity/19_run_TBI_TRACT_duration_stress_test_GPU_v2.R,SUPPLEMENTARY,Duration predictor-family stress testing.,Available in release bundle
+10,Sociodemographic augmentation stress test,sensitivity/20_run_TBI_TRACT_demographic_augmentation_stress_test_GPU_v2.R,SUPPLEMENTARY / HISTORICAL,Early race/ethnicity/payer augmentation analysis.,Available in release bundle
+11,Finalist classification retune,sensitivity/21_run_TBI_TRACT_finalist_classification_retune_GPU.R,SUPPLEMENTARY,Clinical/social finalist comparison across 2022-2024.,Available in release bundle
+12,Exact lean duration test,sensitivity/22_run_TBI_TRACT_exact_lean_duration_test_GPU_v2.R,HISTORICAL DEVELOPMENT,Exact duration test of broader lean candidate.,Available in release bundle
+13,Pragmatic final classification retune,sensitivity/23_run_TBI_TRACT_pragmatic_finalist_retune_GPU.R,REQUIRED,Final pragmatic clinical backbone and endpoint-specific context augmentation.,Available in release bundle
+14,Pragmatic duration finalization,sensitivity/24_run_TBI_TRACT_pragmatic_duration_finalization_GPU.R,REQUIRED,Final continuous-duration backbone testing.,Available in release bundle
+15,Final sensitivity suite,sensitivity/25_run_TBI_TRACT_final_sensitivity_suite_GPU.R,REQUIRED,Subgroup robustness; airway-state sensitivity; early-death sensitivity; locked prediction cache.,Available in release bundle
+16,Penalized-regression comparator,reporting/31_build_TBI_TRACT_fair_ridge_comparator_PARALLEL_AUC_FIXED.R,REQUIRED,Canonical 2020-2023 development / 2024 Ridge-vs-XGBoost comparator.,Yes
+17,Full-development deployment fit,deployment/26_run_TBI_TRACT_deployment_temporal_CV_GPU_v2.R,REQUIRED FOR APP/MODEL OBJECTS,Forward-temporal structural selection; full-development CV only for boosting-round selection; final fit on 2020-2024.,Available in release bundle
+18,HLOS deployment CV extension,deployment/26b_extend_TBI_TRACT_hospital_LOS_deployment_CV_GPU.R,REQUIRED FOR APP/MODEL OBJECTS,Targeted extension; final HLOS deployment selected 4341 rounds.,Available in release bundle
+19,HLOS manifest reconciliation,deployment/26c_reconcile_TBI_TRACT_hospital_LOS_manifest.R,REQUIRED QC,Asserts and reconciles final 4341-round HLOS deployment metadata.,Yes
+20,ICP endpoint verification,qc/00_verify_TBI_TRACT_icp_EVD_BOLT_endpoint.R,REQUIRED QC,Verifies EVD-or-intraparenchymal-bolt definition.,Yes
+21,Canonical manuscript metrics,reporting/27_build_TBI_TRACT_manuscript_output_data.R,REQUIRED,Builds manuscript-facing metrics/calibration from locked rolling-origin forward-temporal predictions.,Available in release bundle
+22,Reporting/QC outputs,reporting/30_build_TBI_TRACT_reporting_QC_outputs.R,REQUIRED,Complete cohort flow; observation counts; missingness; reproducibility metadata/checksums.,Yes
+23,Final figure generation,reporting/29_build_TBI_TRACT_final_figures.R,REQUIRED FOR FIGURES,Final publication figure pipeline including complete cohort flow and combined Figure 3.,Available in release bundle
+24,Final table/eTable artifact,reporting/TBI_TRACT_Tables_and_eTables_FINAL_REFERENCE.docx,REFERENCE OUTPUT,Exact final publication table artifact; exact historical generator was not recoverable.,Available in release bundle
