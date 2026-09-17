@@ -1,18 +1,24 @@
 # TBI-TRACT analytic pipeline
 
-This directory contains the manuscript-facing analysis workflow. Files are numbered in the order a reviewer or reproducing analyst should read/run them; the numbering no longer reflects the historical workstation script numbers used during development.
+This directory contains the manuscript-facing analysis workflow. Files are numbered in the order a reviewer or reproducing analyst should read or run them; the numbering no longer reflects historical workstation script numbers used during development.
 
 ## Local configuration
 
-Create `R/00_config.R` from the repository template `R/00_config.example.R` and point it to your local ACS TQIP/TQP files and output directories. Patient-level ACS data are not distributed with this repository.
+Copy `R/00_config.example.R` to `R/00_config.R` and edit the paths for your environment. Patient-level ACS TQIP/TQP data are not distributed with this repository.
 
-Several model-development scripts use Python XGBoost through `reticulate` and expect a CUDA-capable environment named `tbi-tract-xgb-gpu`. CPU-only reproduction would require adapting those compute settings without changing the analytic definitions.
+Several model-development steps use Python XGBoost through `reticulate` and expect a CUDA-capable environment named `tbi-tract-xgb-gpu`. CPU-only reproduction would require adapting the compute settings without changing the analytic definitions.
+
+## Numbered entrypoints and implementation sources
+
+The files in `01_cohort/` through `05_reporting/` are stable, reviewer-facing entrypoints. Each states the purpose of the step in manuscript terminology and executes the corresponding source in `implementation/`.
+
+`implementation/` preserves the executable analysis code used during development. Some implementation files retain historical internal object names or output-directory names; these are preserved for provenance rather than cosmetically rewriting tested analysis code. They are not alternative model specifications.
 
 ## Primary execution order
 
 | Step | File | Purpose |
 |---:|---|---|
-| 01 | `01_cohort/01_recover_registry_fields.R` | Recover source fields needed for the analysis and repair final disposition where hospital disposition is absent. |
+| 01 | `01_cohort/01_recover_registry_fields.R` | Recover source fields required downstream and repair final disposition where hospital disposition is absent. |
 | 02 | `01_cohort/02_adjudicate_cohort_and_predictors.R` | Construct the candidate adult TBI cohort and adjudicate candidate predictors. |
 | 03 | `01_cohort/03_freeze_analysis_dataset.R` | Reconcile the final cohort, define manuscript endpoints, quantify selection/case-mix differences, and save the frozen analysis dataset. |
 | 04 | `01_cohort/04_verify_icp_endpoint.R` | Confirm that the invasive ICP endpoint is exactly EVD or intraparenchymal bolt. |
@@ -28,11 +34,13 @@ Several model-development scripts use Python XGBoost through `reticulate` and ex
 | 14 | `05_reporting/14_build_manuscript_metrics.R` | Build manuscript-facing temporal performance and calibration outputs from the final prediction caches. |
 | 15 | `05_reporting/15_build_reporting_qc.R` | Produce cohort-flow, missingness, reproducibility, and reporting QC outputs. |
 | 16 | `05_reporting/16_compare_ridge_baseline.R` | Fit the penalized-regression comparator using the same development/evaluation split and endpoint-specific predictor policies. |
-| 17 | `05_reporting/17_build_figures.R` | Generate the manuscript figure package from final reporting artifacts. |
+| 17 | `05_reporting/17_build_figures.R` | Generate the manuscript figure package from finalized reporting artifacts. |
 
 ## Classification predictor-family ablation
 
-The original source file for the classification predictor-family ablation was not retained in the archived analysis project. The complete output set used by the manuscript is provided in `03_sensitivity/predictor_ablation/results/`. See the accompanying README in that directory for details. Step 09 uses selected architecture outputs from that analysis.
+The original source file for the classification predictor-family ablation was not retained in the archived analysis project. The complete output set used by the manuscript is provided in `03_sensitivity/predictor_ablation/results/`. Step 09 automatically stages the selected reference-architecture file it requires when that output is not already present locally.
+
+No reconstructed replacement source code is presented.
 
 ## Development archive
 
