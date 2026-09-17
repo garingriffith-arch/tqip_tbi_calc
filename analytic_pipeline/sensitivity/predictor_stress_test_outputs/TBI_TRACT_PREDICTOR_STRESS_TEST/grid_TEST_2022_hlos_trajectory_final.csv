@@ -1,0 +1,25 @@
+fold_id,test_year,endpoint_id,endpoint_label,best_iteration,tune_score,config_id,max_depth,min_child_weight,subsample,colsample_bytree,lambda
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,782,0.567701283946226,cfg_15,5,10,0.75,0.75,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,726,0.568252824461189,cfg_23,5,10,0.9,0.75,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1083,0.568266631282366,cfg_08,4,20,0.75,1,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,681,0.568347151377734,cfg_06,5,5,0.9,1,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,977,0.56852829166999,cfg_16,4,5,0.75,0.9,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,681,0.568578399731508,cfg_09,5,10,0.9,1,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,560,0.568708421142098,cfg_02,5,5,0.9,1,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,955,0.568798121228217,cfg_11,4,10,0.75,0.9,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1012,0.568943832619865,cfg_03,4,10,0.9,0.9,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1855,0.569067836046793,cfg_13,3,20,0.75,0.75,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,962,0.569181848612765,cfg_14,4,5,0.9,0.9,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,2060,0.569747258893446,cfg_10,3,5,0.9,0.75,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1279,0.569914368881097,cfg_12,4,10,1,0.9,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,2164,0.569933988705043,cfg_01,3,10,0.85,0.85,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1119,0.56997719984568,cfg_17,4,5,1,0.75,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1744,0.570030992529311,cfg_05,3,10,0.9,1,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1052,0.570090023965101,cfg_18,4,5,1,0.9,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,1898,0.57021170891761,cfg_04,3,10,0.9,1,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,3000,0.572805687443835,cfg_19,2,5,0.75,1,5
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,3000,0.572888221456104,cfg_07,2,10,0.75,0.75,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,2999,0.572988105749777,cfg_22,2,20,1,1,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,3000,0.57325634229831,cfg_21,2,5,0.75,1,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,3000,0.573691104017994,cfg_24,2,5,0.9,0.9,1
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,3000,0.573734228543014,cfg_20,2,5,0.9,1,1

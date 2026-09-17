@@ -1,0 +1,16 @@
+TBI-TRACT DURATION PREDICTOR STRESS TEST COMPLETE
+
+Duration models were evaluated with:
+  median absolute error
+  mean pinball loss
+  empirical Q10/Q50/Q90 calibration
+  central 80% prediction-interval coverage
+  prediction-interval width
+  raw quantile crossing
+
+The categorical trajectory architecture chosen inside each rolling fold
+was reused for the corresponding duration model.
+
+Start review with:
+  03_DURATION_ABLATION_DELTAS_VS_FULL.csv
+  04_DURATION_TEMPORAL_ABLATION_SUMMARY.csv

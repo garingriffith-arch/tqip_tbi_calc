@@ -1,0 +1,25 @@
+fold_id,test_year,endpoint_id,endpoint_label,best_iteration,tune_score,config_id,max_depth,min_child_weight,subsample,colsample_bytree,lambda
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,536,0.107801966066293,cfg_15,5,10,0.75,0.75,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,511,0.107883275652141,cfg_23,5,10,0.9,0.75,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,489,0.107933255855232,cfg_06,5,5,0.9,1,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,696,0.107992175969079,cfg_08,4,20,0.75,1,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,673,0.107995863382291,cfg_16,4,5,0.75,0.9,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,480,0.107997591805925,cfg_09,5,10,0.9,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,845,0.108005406323978,cfg_03,4,10,0.9,0.9,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,421,0.108010270509702,cfg_02,5,5,0.9,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,745,0.108061957606846,cfg_11,4,10,0.75,0.9,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,840,0.108090837945191,cfg_17,4,5,1,0.75,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,1311,0.108095608396791,cfg_13,3,20,0.75,0.75,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,616,0.108126324672102,cfg_14,4,5,0.9,0.9,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,685,0.108127322919929,cfg_12,4,10,1,0.9,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,1320,0.10818173801237,cfg_10,3,5,0.9,0.75,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,856,0.108198046995022,cfg_18,4,5,1,0.9,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,1310,0.108210384201558,cfg_04,3,10,0.9,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,1335,0.108252661729503,cfg_05,3,10,0.9,1,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,1109,0.108310381532974,cfg_01,3,10,0.85,0.85,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2635,0.108842785317345,cfg_07,2,10,0.75,0.75,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2439,0.108896545283637,cfg_19,2,5,0.75,1,5
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2599,0.108970403554454,cfg_21,2,5,0.75,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2516,0.109065189002413,cfg_20,2,5,0.9,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2496,0.109076747563224,cfg_22,2,20,1,1,1
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,2219,0.109155782462503,cfg_24,2,5,0.9,0.9,1

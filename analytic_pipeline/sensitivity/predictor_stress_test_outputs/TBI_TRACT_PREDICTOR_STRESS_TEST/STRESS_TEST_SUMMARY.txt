@@ -1,0 +1,21 @@
+TBI-TRACT PREDICTOR STRESS TEST COMPLETE
+
+Design:
+  TEST_2022: train 2020 | tune 2021 | refit 2020-21 | test 2022
+  TEST_2023: train 2020-21 | tune 2022 | refit 2020-22 | test 2023
+  TEST_2024: train 2020-22 | tune 2023 | refit 2020-23 | test 2024
+
+The full-reference model was structurally tuned independently inside each
+fold using only pre-test data. Predictor-family ablations used that same
+fold/endpoint architecture and selected only boosting rounds on the tune year.
+
+Start review with:
+  01_AIRWAY_RESPIRATORY_PROXY_AUDIT.csv
+  08_CLASSIFICATION_ABLATION_OVERALL_DELTAS_VS_FULL.csv
+  09_CLASSIFICATION_ABLATION_CLASS_DELTAS_VS_FULL.csv
+  10_ENDPOINT_TEMPORAL_ABLATION_SUMMARY.csv
+  11_CLASS_LEVEL_TEMPORAL_ABLATION_SUMMARY.csv
+  12_CANDIDATE_REVIEW_FLAGS.csv
+
+Do not automatically remove a predictor because of the review flag.
+The flags are triage aids for clinical/methodologic review.

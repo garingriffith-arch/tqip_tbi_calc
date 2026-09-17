@@ -1,0 +1,100 @@
+fold_id,test_year,duration_id,duration_label,variant_id,n_raw_predictors,n_encoded_features_train,n_encoded_features_final,selected_rounds,tune_score
+TEST_2022,2022,hospital_los,Hospital LOS,FULL_REFERENCE,48,72,73,1030,0.147085523372908
+TEST_2022,2022,hospital_los,Hospital LOS,NO_RESP_ASSISTANCE,47,68,69,1225,0.147065272642374
+TEST_2022,2022,hospital_los,Hospital LOS,NO_RESP_SUPPORT,46,63,64,1107,0.147354001173133
+TEST_2022,2022,hospital_los,Hospital LOS,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,1004,0.147070597732788
+TEST_2022,2022,hospital_los,Hospital LOS,NO_AIRWAY_PROXY_SET,44,61,62,1057,0.147379589269476
+TEST_2022,2022,hospital_los,Hospital LOS,NO_HELMET,47,67,68,1445,0.147066125344119
+TEST_2022,2022,hospital_los,Hospital LOS,NO_MECHANISM_HELMET,46,60,61,1024,0.147615038026502
+TEST_2022,2022,hospital_los,Hospital LOS,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,957,0.154316507561676
+TEST_2022,2022,hospital_los,Hospital LOS,NO_PMHX,36,60,61,1096,0.148105928733831
+TEST_2022,2022,hospital_los,Hospital LOS,CORE_NEURO,24,31,32,711,0.15770218643817
+TEST_2022,2022,hospital_los,Hospital LOS,CORE_NEURO_PLUS_RESP,26,40,41,760,0.157029379651409
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,FULL_REFERENCE,48,72,73,464,0.148203047577645
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_ASSISTANCE,47,68,69,477,0.148259777400494
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_SUPPORT,46,63,64,481,0.148354174984101
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,467,0.148273008766711
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_AIRWAY_PROXY_SET,44,61,62,431,0.148468162210242
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_HELMET,47,67,68,464,0.148310114878074
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_MECHANISM_HELMET,46,60,61,447,0.148792286363143
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,499,0.151326788291787
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,NO_PMHX,36,60,61,473,0.148585867131814
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO,24,31,32,413,0.153322389266364
+TEST_2022,2022,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO_PLUS_RESP,26,40,41,427,0.15294442478247
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,FULL_REFERENCE,48,72,73,344,0.180092399164567
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_ASSISTANCE,47,68,69,418,0.180000653674459
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_SUPPORT,46,63,64,350,0.179856168252097
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,315,0.179887054736375
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_AIRWAY_PROXY_SET,44,61,62,366,0.179882149417675
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_HELMET,47,67,68,337,0.180035604007102
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_MECHANISM_HELMET,46,60,61,369,0.180583350288308
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,311,0.182008794845911
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_PMHX,36,60,61,271,0.179958537115332
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO,24,31,32,331,0.184225017447829
+TEST_2022,2022,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO_PLUS_RESP,26,40,41,307,0.184173180606563
+TEST_2023,2023,hospital_los,Hospital LOS,FULL_REFERENCE,48,73,73,1812,0.15011576096598
+TEST_2023,2023,hospital_los,Hospital LOS,NO_RESP_ASSISTANCE,47,69,69,2147,0.150123322353939
+TEST_2023,2023,hospital_los,Hospital LOS,NO_RESP_SUPPORT,46,64,64,1580,0.150425143125056
+TEST_2023,2023,hospital_los,Hospital LOS,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1792,0.150272629420961
+TEST_2023,2023,hospital_los,Hospital LOS,NO_AIRWAY_PROXY_SET,44,62,62,1620,0.15046106691405
+TEST_2023,2023,hospital_los,Hospital LOS,NO_HELMET,47,68,68,2205,0.150134085045686
+TEST_2023,2023,hospital_los,Hospital LOS,NO_MECHANISM_HELMET,46,61,61,1799,0.150768500313529
+TEST_2023,2023,hospital_los,Hospital LOS,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1781,0.157304012541423
+TEST_2023,2023,hospital_los,Hospital LOS,NO_PMHX,36,61,61,1360,0.151470489992374
+TEST_2023,2023,hospital_los,Hospital LOS,CORE_NEURO,24,32,32,1397,0.161164913038657
+TEST_2023,2023,hospital_los,Hospital LOS,CORE_NEURO_PLUS_RESP,26,41,41,1173,0.160495573017016
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,FULL_REFERENCE,48,73,73,822,0.148424076945108
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_ASSISTANCE,47,69,69,752,0.148409950582939
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_SUPPORT,46,64,64,754,0.148628624530703
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,675,0.148549572248533
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_AIRWAY_PROXY_SET,44,62,62,654,0.148681873814126
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_HELMET,47,68,68,818,0.148379230673283
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_MECHANISM_HELMET,46,61,61,656,0.148971578279089
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,722,0.151554867696425
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,NO_PMHX,36,61,61,663,0.148960868991869
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO,24,32,32,637,0.15392892338609
+TEST_2023,2023,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO_PLUS_RESP,26,41,41,663,0.153575664126191
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,FULL_REFERENCE,48,73,73,574,0.179393804491373
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_ASSISTANCE,47,69,69,486,0.179405350042655
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_SUPPORT,46,64,64,486,0.179290716864069
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,444,0.179459254059856
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_AIRWAY_PROXY_SET,44,62,62,523,0.179335096504621
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_HELMET,47,68,68,538,0.179334101774157
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_MECHANISM_HELMET,46,61,61,476,0.180286562509293
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,475,0.181642224853127
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_PMHX,36,61,61,493,0.179646303466031
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO,24,32,32,487,0.18428445765166
+TEST_2023,2023,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO_PLUS_RESP,26,41,41,538,0.184172038621503
+TEST_2024,2024,hospital_los,Hospital LOS,FULL_REFERENCE,48,73,73,2942,0.147204307848982
+TEST_2024,2024,hospital_los,Hospital LOS,NO_RESP_ASSISTANCE,47,69,69,2400,0.147237670516329
+TEST_2024,2024,hospital_los,Hospital LOS,NO_RESP_SUPPORT,46,64,64,2521,0.147477759831035
+TEST_2024,2024,hospital_los,Hospital LOS,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,2576,0.14728919404232
+TEST_2024,2024,hospital_los,Hospital LOS,NO_AIRWAY_PROXY_SET,44,62,62,2229,0.147558827481384
+TEST_2024,2024,hospital_los,Hospital LOS,NO_HELMET,47,68,68,2265,0.147281032000429
+TEST_2024,2024,hospital_los,Hospital LOS,NO_MECHANISM_HELMET,46,61,61,2273,0.147938246832582
+TEST_2024,2024,hospital_los,Hospital LOS,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,2036,0.154108658019592
+TEST_2024,2024,hospital_los,Hospital LOS,NO_PMHX,36,61,61,1963,0.148562443367569
+TEST_2024,2024,hospital_los,Hospital LOS,CORE_NEURO,24,32,32,1442,0.157861172223491
+TEST_2024,2024,hospital_los,Hospital LOS,CORE_NEURO_PLUS_RESP,26,41,41,1331,0.157109363412389
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,FULL_REFERENCE,48,73,73,979,0.144284770915368
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_ASSISTANCE,47,69,69,1145,0.144270202660354
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_RESP_SUPPORT,46,64,64,1055,0.144473925572411
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1338,0.144296000753873
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_AIRWAY_PROXY_SET,44,62,62,970,0.144507016416129
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_HELMET,47,68,68,1075,0.144280291923904
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_MECHANISM_HELMET,46,61,61,1078,0.144793159948148
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1024,0.147511686652038
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,NO_PMHX,36,61,61,1001,0.144770954424403
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO,24,32,32,771,0.149736854490033
+TEST_2024,2024,icu_los_conditional,ICU LOS conditional on ICU use,CORE_NEURO_PLUS_RESP,26,41,41,868,0.149282743456762
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,FULL_REFERENCE,48,73,73,581,0.178733128388155
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_ASSISTANCE,47,69,69,737,0.178628545695671
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_RESP_SUPPORT,46,64,64,726,0.178847457591708
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,658,0.178770715518438
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_AIRWAY_PROXY_SET,44,62,62,496,0.179055253209381
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_HELMET,47,68,68,641,0.178704127830568
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_MECHANISM_HELMET,46,61,61,462,0.179722322846132
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,671,0.180746327253712
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,NO_PMHX,36,61,61,477,0.179057765694532
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO,24,32,32,472,0.183546207646806
+TEST_2024,2024,ventilator_days_conditional,Ventilator duration conditional on ventilation,CORE_NEURO_PLUS_RESP,26,41,41,489,0.183379105549418

@@ -1,0 +1,199 @@
+fold_id,test_year,endpoint_id,endpoint_label,variant_id,n_predictors_raw,n_encoded_features_train,n_encoded_features_final,selected_rounds,tune_score
+TEST_2022,2022,discharge_3cat_final,Disposition,FULL_REFERENCE,48,72,73,703,0.554803252838801
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_RESP_ASSISTANCE,47,68,69,699,0.554882096152727
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_RESP_SUPPORT,46,63,64,754,0.556126064868237
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,731,0.555554327858026
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_AIRWAY_PROXY_SET,44,61,62,752,0.556991523297862
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_HELMET,47,67,68,694,0.555049576404487
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_MECHANISM_HELMET,46,60,61,677,0.559096351606939
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,690,0.576891321666018
+TEST_2022,2022,discharge_3cat_final,Disposition,NO_PMHX,36,60,61,607,0.562577190135908
+TEST_2022,2022,discharge_3cat_final,Disposition,CORE_NEURO,24,31,32,418,0.593477736780597
+TEST_2022,2022,discharge_3cat_final,Disposition,CORE_NEURO_PLUS_RESP,26,40,41,436,0.591015379881757
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,FULL_REFERENCE,48,72,73,792,0.672925930145901
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_RESP_ASSISTANCE,47,68,69,731,0.673059802579934
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_RESP_SUPPORT,46,63,64,738,0.675676528273134
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,734,0.673212960612389
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_AIRWAY_PROXY_SET,44,61,62,701,0.676177260243302
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_HELMET,47,67,68,727,0.672698377716872
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_MECHANISM_HELMET,46,60,61,737,0.674533342046668
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,734,0.691838466790101
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,NO_PMHX,36,60,61,738,0.676748069968606
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,CORE_NEURO,24,31,32,523,0.70548012302855
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,CORE_NEURO_PLUS_RESP,26,40,41,513,0.701020177936873
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,FULL_REFERENCE,48,72,73,736,0.358206061375604
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_ASSISTANCE,47,68,69,734,0.358794364109463
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_SUPPORT,46,63,64,652,0.361233680680791
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,711,0.359332362914397
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_AIRWAY_PROXY_SET,44,61,62,614,0.363158043694124
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_HELMET,47,67,68,618,0.358319048257199
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_MECHANISM_HELMET,46,60,61,663,0.360068992722227
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,620,0.365213015170606
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_PMHX,36,60,61,673,0.360302716096336
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO,24,31,32,451,0.377175005121133
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO_PLUS_RESP,26,40,41,495,0.372257881388746
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,FULL_REFERENCE,48,72,73,782,0.567701283946226
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_ASSISTANCE,47,68,69,781,0.567867954057958
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_SUPPORT,46,63,64,712,0.569292938429998
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,748,0.567906035388773
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_AIRWAY_PROXY_SET,44,61,62,742,0.569697834223865
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_HELMET,47,67,68,668,0.567958060872927
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_MECHANISM_HELMET,46,60,61,597,0.570073948753628
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,600,0.593143938572683
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,NO_PMHX,36,60,61,648,0.571526831345686
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO,24,31,32,485,0.607319183818711
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO_PLUS_RESP,26,40,41,465,0.604395738612897
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,FULL_REFERENCE,48,72,73,279,0.111857474951662
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_ASSISTANCE,47,68,69,286,0.111875542490084
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_SUPPORT,46,63,64,241,0.111907294797509
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,275,0.111975365941157
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_AIRWAY_PROXY_SET,44,61,62,281,0.112016894036233
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_HELMET,47,67,68,286,0.111860763694307
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_MECHANISM_HELMET,46,60,61,286,0.112652059418858
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,281,0.112066233113513
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,NO_PMHX,36,60,61,273,0.112179125836542
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO,24,31,32,233,0.113608504544646
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO_PLUS_RESP,26,40,41,236,0.113617464279774
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,FULL_REFERENCE,48,72,73,364,0.130143392070741
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_ASSISTANCE,47,68,69,427,0.130159203740741
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_SUPPORT,46,63,64,366,0.130286886748587
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_GCS_AIRWAY_QUALIFIERS,46,70,71,433,0.13023878053155
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_AIRWAY_PROXY_SET,44,61,62,413,0.13043466832596
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_HELMET,47,67,68,428,0.130228605348029
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_MECHANISM_HELMET,46,60,61,361,0.131679133281291
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_NONCRANIAL_INJURY_PHENOTYPES,42,66,67,428,0.130396523270378
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_PMHX,36,60,61,427,0.130716493885909
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO,24,31,32,243,0.133043068580608
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO_PLUS_RESP,26,40,41,244,0.133045955112457
+TEST_2023,2023,discharge_3cat_final,Disposition,FULL_REFERENCE,48,73,73,1056,0.569873542322736
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_RESP_ASSISTANCE,47,69,69,965,0.569910378830069
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_RESP_SUPPORT,46,64,64,965,0.571207363152817
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,965,0.570830762362565
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_AIRWAY_PROXY_SET,44,62,62,968,0.57216198287047
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_HELMET,47,68,68,996,0.570263939013528
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_MECHANISM_HELMET,46,61,61,887,0.573907385364293
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,974,0.592285213224602
+TEST_2023,2023,discharge_3cat_final,Disposition,NO_PMHX,36,61,61,828,0.580091120936769
+TEST_2023,2023,discharge_3cat_final,Disposition,CORE_NEURO,24,32,32,619,0.611305859362993
+TEST_2023,2023,discharge_3cat_final,Disposition,CORE_NEURO_PLUS_RESP,26,41,41,662,0.609205812840904
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,FULL_REFERENCE,48,73,73,1042,0.680807363785028
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_RESP_ASSISTANCE,47,69,69,1043,0.681053390596483
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_RESP_SUPPORT,46,64,64,1035,0.682983469141677
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1025,0.681271848957702
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_AIRWAY_PROXY_SET,44,62,62,1026,0.68370711566074
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_HELMET,47,68,68,1038,0.680688600957596
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_MECHANISM_HELMET,46,61,61,973,0.682886981246244
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1014,0.701216308513132
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,NO_PMHX,36,61,61,957,0.684816227497196
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,CORE_NEURO,24,32,32,755,0.715885924028124
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,CORE_NEURO_PLUS_RESP,26,41,41,712,0.712047237989725
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,FULL_REFERENCE,48,73,73,923,0.351505714762077
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_ASSISTANCE,47,69,69,1034,0.351838352682525
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_SUPPORT,46,64,64,958,0.353854089754388
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,845,0.352703102898893
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_AIRWAY_PROXY_SET,44,62,62,808,0.356014016684314
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_HELMET,47,68,68,988,0.351550129689878
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_MECHANISM_HELMET,46,61,61,848,0.353420696128002
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,877,0.358954717641058
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_PMHX,36,61,61,847,0.353830534035615
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO,24,32,32,731,0.371530349212656
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO_PLUS_RESP,26,41,41,691,0.366807821490321
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,FULL_REFERENCE,48,73,73,1023,0.588857768777257
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_ASSISTANCE,47,69,69,1091,0.588907981100617
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_SUPPORT,46,64,64,1059,0.589620697855627
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1010,0.589399497037945
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_AIRWAY_PROXY_SET,44,62,62,950,0.590248319971055
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_HELMET,47,68,68,1021,0.589116496821732
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_MECHANISM_HELMET,46,61,61,895,0.591476337006812
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,872,0.615691497436604
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,NO_PMHX,36,61,61,1018,0.593555045625382
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO,24,32,32,739,0.630364163772887
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO_PLUS_RESP,26,41,41,715,0.628305723109851
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,FULL_REFERENCE,48,73,73,536,0.107801966066293
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_ASSISTANCE,47,69,69,543,0.107820411404194
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_SUPPORT,46,64,64,428,0.107819715355203
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,461,0.107826860508653
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_AIRWAY_PROXY_SET,44,62,62,423,0.108052232012097
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_HELMET,47,68,68,534,0.107753163073695
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_MECHANISM_HELMET,46,61,61,417,0.108451310851034
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,484,0.108034571641448
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,NO_PMHX,36,61,61,416,0.107862697408164
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO,24,32,32,366,0.109554073792328
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO_PLUS_RESP,26,41,41,352,0.109506307666636
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,FULL_REFERENCE,48,73,73,632,0.131105341911734
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_ASSISTANCE,47,69,69,603,0.131152463234811
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_SUPPORT,46,64,64,580,0.131100017075351
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,561,0.131255242741796
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_AIRWAY_PROXY_SET,44,62,62,633,0.131223844678681
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_HELMET,47,68,68,594,0.131100299681749
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_MECHANISM_HELMET,46,61,61,605,0.132485852262896
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,604,0.131548644219358
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_PMHX,36,61,61,431,0.13156273111565
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO,24,32,32,417,0.134165141923355
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO_PLUS_RESP,26,41,41,372,0.134017012066183
+TEST_2024,2024,discharge_3cat_final,Disposition,FULL_REFERENCE,48,73,73,1284,0.578808976361082
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_RESP_ASSISTANCE,47,69,69,1285,0.579242778004888
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_RESP_SUPPORT,46,64,64,1387,0.580140117978238
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1284,0.579899041159265
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_AIRWAY_PROXY_SET,44,62,62,1167,0.581141850969114
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_HELMET,47,68,68,1385,0.579435253486344
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_MECHANISM_HELMET,46,61,61,1194,0.58283628381123
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1288,0.601933974113024
+TEST_2024,2024,discharge_3cat_final,Disposition,NO_PMHX,36,61,61,957,0.588835007442376
+TEST_2024,2024,discharge_3cat_final,Disposition,CORE_NEURO,24,32,32,790,0.621009991209398
+TEST_2024,2024,discharge_3cat_final,Disposition,CORE_NEURO_PLUS_RESP,26,41,41,806,0.618516848450044
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,FULL_REFERENCE,48,73,73,1453,0.68318465763177
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_RESP_ASSISTANCE,47,69,69,1524,0.683576416954915
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_RESP_SUPPORT,46,64,64,1413,0.685503703289712
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1439,0.68388741844107
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_AIRWAY_PROXY_SET,44,62,62,1390,0.686400935427044
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_HELMET,47,68,68,1360,0.683306244955045
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_MECHANISM_HELMET,46,61,61,1313,0.685635899754162
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1369,0.70324241036888
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,NO_PMHX,36,61,61,1311,0.687956869245572
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,CORE_NEURO,24,32,32,928,0.71811277202075
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,CORE_NEURO_PLUS_RESP,26,41,41,905,0.714281652835963
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,FULL_REFERENCE,48,73,73,1089,0.346741101293116
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_ASSISTANCE,47,69,69,990,0.347336529750612
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_RESP_SUPPORT,46,64,64,1088,0.349018716063885
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1021,0.347530247529643
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_AIRWAY_PROXY_SET,44,62,62,1034,0.350876911491167
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_HELMET,47,68,68,1029,0.346879325984902
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_MECHANISM_HELMET,46,61,61,1033,0.348618789910431
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,999,0.354259794653099
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,NO_PMHX,36,61,61,1016,0.348897896480503
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO,24,32,32,793,0.366326302743414
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,CORE_NEURO_PLUS_RESP,26,41,41,735,0.36176164415299
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,FULL_REFERENCE,48,73,73,1452,0.582157149739024
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_ASSISTANCE,47,69,69,1362,0.582414541898306
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_RESP_SUPPORT,46,64,64,1378,0.583233564539684
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,1279,0.582903331322421
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_AIRWAY_PROXY_SET,44,62,62,1303,0.583821446449528
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_HELMET,47,68,68,1281,0.582498554477078
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_MECHANISM_HELMET,46,61,61,1087,0.585157005917977
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,1087,0.608240559259276
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,NO_PMHX,36,61,61,1086,0.587170867984475
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO,24,32,32,765,0.622928333840645
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,CORE_NEURO_PLUS_RESP,26,41,41,787,0.620140162392024
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,FULL_REFERENCE,48,73,73,569,0.105120828972483
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_ASSISTANCE,47,69,69,546,0.105172495885203
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_RESP_SUPPORT,46,64,64,632,0.105197612453454
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,541,0.105197109110644
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_AIRWAY_PROXY_SET,44,62,62,557,0.105340470159792
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_HELMET,47,68,68,545,0.105121689470067
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_MECHANISM_HELMET,46,61,61,558,0.10569844349235
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,543,0.105337723004012
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,NO_PMHX,36,61,61,490,0.105300762389976
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO,24,32,32,417,0.107103222123193
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,CORE_NEURO_PLUS_RESP,26,41,41,536,0.106845495876515
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,FULL_REFERENCE,48,73,73,645,0.133738389797887
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_ASSISTANCE,47,69,69,646,0.133716040982774
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_RESP_SUPPORT,46,64,64,783,0.133898350310601
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_GCS_AIRWAY_QUALIFIERS,46,71,71,712,0.133868062078297
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_AIRWAY_PROXY_SET,44,62,62,769,0.133835459948975
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_HELMET,47,68,68,724,0.133794939945393
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_MECHANISM_HELMET,46,61,61,464,0.135299505416255
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_NONCRANIAL_INJURY_PHENOTYPES,42,67,67,751,0.134213007219922
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,NO_PMHX,36,61,61,628,0.134226950942388
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO,24,32,32,469,0.136910351576671
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,CORE_NEURO_PLUS_RESP,26,41,41,533,0.136751200597783

@@ -1,0 +1,19 @@
+fold_id,test_year,endpoint_id,endpoint_label,best_iteration,tune_score,config_id,max_depth,min_child_weight,subsample,colsample_bytree,lambda,selected_by
+TEST_2022,2022,discharge_3cat_final,Disposition,703,0.554803252838801,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2022,2022,icu_trajectory_final,ICU trajectory,792,0.672925930145901,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2022,2022,ventilation_trajectory_final,Mechanical ventilation trajectory,736,0.358206061375604,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2022,2022,hlos_trajectory_final,Hospital LOS trajectory,782,0.567701283946226,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2022,2022,icp_pressure_monitor_final,Invasive ICP monitoring,279,0.111857474951662,cfg_02,5,5,0.9,1,1,Minimum fold-specific pre-test temporal tuning loss
+TEST_2022,2022,craniotomy_craniectomy_final,Craniotomy/craniectomy,364,0.130143392070741,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,discharge_3cat_final,Disposition,1056,0.569873542322736,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,icu_trajectory_final,ICU trajectory,1042,0.680807363785028,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,923,0.351505714762077,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,hlos_trajectory_final,Hospital LOS trajectory,1023,0.588857768777257,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,icp_pressure_monitor_final,Invasive ICP monitoring,536,0.107801966066293,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2023,2023,craniotomy_craniectomy_final,Craniotomy/craniectomy,632,0.131105341911734,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,discharge_3cat_final,Disposition,1284,0.578808976361082,cfg_23,5,10,0.9,0.75,1,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1453,0.68318465763177,cfg_23,5,10,0.9,0.75,1,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,ventilation_trajectory_final,Mechanical ventilation trajectory,1089,0.346741101293116,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,hlos_trajectory_final,Hospital LOS trajectory,1452,0.582157149739024,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,icp_pressure_monitor_final,Invasive ICP monitoring,569,0.105120828972483,cfg_15,5,10,0.75,0.75,5,Minimum fold-specific pre-test temporal tuning loss
+TEST_2024,2024,craniotomy_craniectomy_final,Craniotomy/craniectomy,645,0.133738389797887,cfg_23,5,10,0.9,0.75,1,Minimum fold-specific pre-test temporal tuning loss

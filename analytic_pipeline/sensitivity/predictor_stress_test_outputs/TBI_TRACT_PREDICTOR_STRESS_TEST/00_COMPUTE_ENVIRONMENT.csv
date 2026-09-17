@@ -1,0 +1,2 @@
+python,python_xgboost_version,device,logical_cpu_threads,allocated_host_threads
+C:/Users/garin/AppData/Local/r-miniconda/envs/tbi-tract-xgb-gpu/python.exe,3.2.0,cuda,32,30

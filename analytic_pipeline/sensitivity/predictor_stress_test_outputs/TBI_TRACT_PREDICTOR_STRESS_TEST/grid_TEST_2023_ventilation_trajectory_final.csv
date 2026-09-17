@@ -1,0 +1,25 @@
+fold_id,test_year,endpoint_id,endpoint_label,best_iteration,tune_score,config_id,max_depth,min_child_weight,subsample,colsample_bytree,lambda
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,923,0.351505714762077,cfg_15,5,10,0.75,0.75,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,862,0.351744302761466,cfg_23,5,10,0.9,0.75,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,860,0.351753922341088,cfg_06,5,5,0.9,1,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,846,0.351902173112478,cfg_09,5,10,0.9,1,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1415,0.351955703357773,cfg_08,4,20,0.75,1,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,846,0.352008131987867,cfg_02,5,5,0.9,1,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1342,0.352026940632773,cfg_16,4,5,0.75,0.9,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1310,0.352101457190617,cfg_11,4,10,0.75,0.9,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1246,0.352143148555016,cfg_03,4,10,0.9,0.9,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1203,0.352243636277218,cfg_14,4,5,0.9,0.9,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2747,0.352470441692045,cfg_10,3,5,0.9,0.75,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2273,0.352504924073409,cfg_13,3,20,0.75,0.75,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2694,0.352545083306431,cfg_05,3,10,0.9,1,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2227,0.352624403484655,cfg_01,3,10,0.85,0.85,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1448,0.352688296783758,cfg_12,4,10,1,0.9,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1715,0.35269609804175,cfg_17,4,5,1,0.75,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2234,0.352745693568994,cfg_04,3,10,0.9,1,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,1463,0.352923710464014,cfg_18,4,5,1,0.9,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2999,0.355300612958324,cfg_19,2,5,0.75,1,5
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2999,0.355406001118666,cfg_07,2,10,0.75,0.75,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2999,0.355468906015982,cfg_21,2,5,0.75,1,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,2999,0.355683052177444,cfg_20,2,5,0.9,1,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,3000,0.355695798717719,cfg_24,2,5,0.9,0.9,1
+TEST_2023,2023,ventilation_trajectory_final,Mechanical ventilation trajectory,3000,0.356196721982159,cfg_22,2,20,1,1,1

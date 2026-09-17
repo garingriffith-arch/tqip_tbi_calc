@@ -1,0 +1,25 @@
+fold_id,test_year,endpoint_id,endpoint_label,best_iteration,tune_score,config_id,max_depth,min_child_weight,subsample,colsample_bytree,lambda
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1453,0.68318465763177,cfg_23,5,10,0.9,0.75,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1335,0.68322842521186,cfg_15,5,10,0.75,0.75,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1300,0.683725891515603,cfg_09,5,10,0.9,1,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1303,0.68377501740147,cfg_02,5,5,0.9,1,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1499,0.683779486068113,cfg_06,5,5,0.9,1,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2134,0.683946138931405,cfg_03,4,10,0.9,0.9,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2458,0.683953993072902,cfg_16,4,5,0.75,0.9,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2016,0.684039798556021,cfg_08,4,20,0.75,1,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2008,0.684207085205563,cfg_11,4,10,0.75,0.9,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2148,0.684331873904306,cfg_14,4,5,0.9,0.9,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2147,0.684394499561611,cfg_12,4,10,1,0.9,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2225,0.684419123589729,cfg_17,4,5,1,0.75,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,1747,0.684833139362748,cfg_18,4,5,1,0.9,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.685839047901001,cfg_13,3,20,0.75,0.75,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.685996403834269,cfg_05,3,10,0.9,1,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2998,0.686065010340029,cfg_01,3,10,0.85,0.85,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2999,0.686091913318129,cfg_10,3,5,0.9,0.75,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2998,0.686187572382106,cfg_04,3,10,0.9,1,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.693967707320387,cfg_19,2,5,0.75,1,5
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2997,0.694078505644216,cfg_21,2,5,0.75,1,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,2999,0.694182761607262,cfg_07,2,10,0.75,0.75,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.695000672057515,cfg_20,2,5,0.9,1,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.695038561961416,cfg_24,2,5,0.9,0.9,1
+TEST_2024,2024,icu_trajectory_final,ICU trajectory,3000,0.695796321697521,cfg_22,2,20,1,1,1
