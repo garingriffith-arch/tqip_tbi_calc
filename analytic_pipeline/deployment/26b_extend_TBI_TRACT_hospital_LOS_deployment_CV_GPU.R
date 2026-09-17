@@ -529,17 +529,19 @@ saveRDS(
   encoder_path
 )
 
+selected_rounds_final <- as.integer(selected_rounds)
+
 rounds_table[
   endpoint_id == "hospital_los",
   selected_rounds_5fold_cv :=
-    selected_rounds
+    selected_rounds_final
 ]
 
 manifest[
   endpoint_id == "hospital_los",
   `:=`(
     selected_rounds =
-      selected_rounds,
+      selected_rounds_final,
     model_path =
       model_path,
     encoder_path =
