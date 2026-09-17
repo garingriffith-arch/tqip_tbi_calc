@@ -90,7 +90,7 @@ labels <- c(
   pupil_clean="Pupillary response", sbp_clean="Systolic blood pressure, mmHg",
   pulse_clean="Heart rate, beats/min", rr_clean="Respiratory rate, breaths/min",
   spo2_clean="Oxygen saturation, %", temperature_c_recovered="Temperature, °C",
-  supplemental_oxygen_recovered="Supplemental oxygen",
+  supplemental_oxygen_recovered="Supplemental oxygen at initial assessment",
   dx_concussion="Concussion", dx_cerebral_edema_traumatic="Traumatic cerebral edema",
   dx_diffuse_axonal_injury="Diffuse axonal injury",
   dx_focal_contusion_or_iph="Contusion / intraparenchymal hemorrhage",
@@ -137,12 +137,43 @@ get_levels <- function(v) {
   character()
 }
 pretty_level <- function(x) {
-  if (x == "__UNKNOWN__") return("Unknown / not recorded")
-  if (x == "__OTHER__") return("Other / unlisted")
-  if (x == "Transport/MVC") return("Transport-related")
-  x
+  z <- trimws(as.character(x))
+  zl <- tolower(z)
+  if (zl %in% c("__unknown__", "unknown", "unknown / not recorded", "unknown/not recorded", "not recorded", "not known", "unk")) return("Unknown / not recorded")
+  if (zl %in% c("__other__", "other", "other / unlisted", "other/unlisted", "other / not listed", "other/not listed")) return("Other / not listed")
+  if (z == "Transport/MVC") return("Motor vehicle / transport-related")
+  z
 }
+
+# Collapse duplicate user-facing choices created when the training encoder contains
+# both a registry category (for example, "Unknown") and an encoding sentinel
+# (for example, "__UNKNOWN__"). Prefer the explicit model sentinel for unknown
+# and the observed registry category for other when both are present.
+clean_choices <- function(levels) {
+  lev <- unique(as.character(levels))
+  if (!length(lev)) lev <- "__UNKNOWN__"
+  lab <- vapply(lev, pretty_level, character(1))
+  priority <- rep(10L, length(lev))
+  priority[lev == "__UNKNOWN__"] <- 1L
+  priority[tolower(lev) == "unknown"] <- 2L
+  priority[tolower(lev) == "other"] <- 1L
+  priority[lev == "__OTHER__"] <- 2L
+  ord <- order(lab, priority, seq_along(lev))
+  lev <- lev[ord]; lab <- lab[ord]
+  keep <- !duplicated(lab)
+  setNames(lev[keep], lab[keep])
+}
+
 input_id <- function(v) paste0("var__", v)
+
+numeric_limits <- list(
+  age = list(min=18, max=89, step=1, note="Study population: age 18–89 years"),
+  sbp_clean = list(min=0, max=300, step=1, note="Allowed range: 0–300 mmHg"),
+  pulse_clean = list(min=0, max=300, step=1, note="Allowed range: 0–300 beats/min"),
+  rr_clean = list(min=0, max=100, step=1, note="Allowed range: 0–100 breaths/min"),
+  spo2_clean = list(min=0, max=100, step=1, note="Allowed range: 0–100%"),
+  temperature_c_recovered = list(min=25, max=45, step=0.1, note="Allowed range: 25–45 °C")
+)
 
 gcs_choices <- list(
   gcs_eye_clean=c("Unknown"="", "1 - None"="1", "2 - To pain"="2", "3 - To speech"="3", "4 - Spontaneous"="4"),
@@ -153,15 +184,39 @@ gcs_choices <- list(
 make_control <- function(v) {
   id <- input_id(v); lab <- label_for(v)
   if (v %in% names(gcs_choices)) return(selectInput(id, lab, gcs_choices[[v]], selected="", selectize=FALSE))
-  if (v %in% binary_predictors) return(selectInput(id, lab, c("Unknown"="", "No"="0", "Yes"="1"), selected="", selectize=FALSE))
-  if (v %in% continuous_predictors) return(textInput(id, lab, value="", placeholder="Unknown"))
+  if (v %in% binary_predictors) return(selectInput(id, lab, c("Unknown / not recorded"="", "No"="0", "Yes"="1"), selected="", selectize=FALSE))
+  if (v %in% continuous_predictors) {
+    lim <- numeric_limits[[v]]
+    if (!is.null(lim)) {
+      return(tagList(
+        numberInput(id, lab, value=NA, min=lim$min, max=lim$max, step=lim$step),
+        div(class="input-hint", lim$note)
+      ))
+    }
+    return(numberInput(id, lab, value=NA))
+  }
   if (v %in% categorical_predictors) {
     lev <- get_levels(v); if (!length(lev)) lev <- "__UNKNOWN__"
-    ch <- setNames(lev, vapply(lev, pretty_level, character(1)))
-    sel <- if ("__UNKNOWN__" %in% lev) "__UNKNOWN__" else lev[1]
+    ch <- clean_choices(lev)
+    vals <- unname(ch)
+    sel <- if ("__UNKNOWN__" %in% vals) "__UNKNOWN__" else if (any(tolower(vals)=="unknown")) vals[which(tolower(vals)=="unknown")[1]] else vals[1]
     return(selectInput(id, lab, ch, selected=sel, selectize=FALSE))
   }
   NULL
+}
+
+validate_numeric_inputs <- function(input, allowed) {
+  errors <- character()
+  for (v in intersect(names(numeric_limits), allowed)) {
+    x <- input[[input_id(v)]]
+    if (is.null(x) || !length(x) || is.na(x) || identical(x, "")) next
+    z <- suppressWarnings(as.numeric(x[[1]]))
+    lim <- numeric_limits[[v]]
+    if (!is.finite(z) || z < lim$min || z > lim$max) {
+      errors <- c(errors, paste0(label_for(v), " must be between ", lim$min, " and ", lim$max, "."))
+    }
+  }
+  errors
 }
 
 # Quick preview is intentionally focused, not a separately validated reduced-input model.
@@ -182,7 +237,7 @@ quick_sets <- list(
 quick_sets <- lapply(quick_sets, intersect, y=all_predictors)
 quick_choices <- c("Discharge disposition"="disposition", "Hospital length of stay"="hlos",
   "ICU trajectory"="icu", "Mechanical ventilation trajectory"="ventilation",
-  "ICP monitoring"="icp", "Craniotomy / craniectomy"="craniotomy")
+  "EVD / intraparenchymal ICP bolt"="icp", "Craniotomy / craniectomy"="craniotomy")
 
 collect_values <- function(input, allowed) {
   vals <- setNames(vector("list", length(all_predictors)), all_predictors)
@@ -262,7 +317,7 @@ traj_duration <- function(d,q,cls,title,note=NULL) tagList(prob_cards(d,cls),dur
 css <- "
 body{background:#f4f7fb;color:#243447}.app{max-width:1450px;margin:auto;padding:22px}.hero,.card{background:white;border:1px solid #e3ebf3;border-radius:22px;box-shadow:0 8px 26px rgba(31,52,73,.06)}
 .hero{padding:22px 26px;margin-bottom:20px}.hero-grid{display:grid;grid-template-columns:84px 1fr;gap:18px;align-items:center}.logo{width:78px}.title{font-weight:850;font-size:clamp(1.8rem,3vw,2.8rem);margin:0}.subtitle{color:#5b6d7f;margin:4px 0 0}
-.sticky{position:sticky;top:18px}.scroll{max-height:calc(100vh - 355px);overflow-y:auto;padding-right:5px}.mode{background:#edf4fb;border-radius:15px;padding:12px;margin-bottom:12px}.btn-primary{border-radius:13px;font-weight:750;min-height:44px}.section-title{font-weight:800}.result-section{padding:4px 0 19px;border-bottom:1px solid #edf1f5;margin-bottom:17px}.result-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.result-heading h3{font-size:1.05rem;font-weight:800}.result-heading span{font-size:.82rem;color:#6b7a8c;font-weight:650}.result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.result-card,.duration-card{border:1px solid #dbe8f5;border-radius:17px;padding:13px;background:#f9fbfd}.result-top{display:flex;justify-content:space-between;gap:10px}.result-name{font-weight:700;color:#425466}.result-pct{font-size:1.7rem;font-weight:900}.bar{height:11px;background:#e7edf5;border-radius:99px;overflow:hidden;margin-top:10px}.fill{height:100%;border-radius:99px}.result-disposition .fill{background:#1f4e79}.result-hospital .fill{background:#2f7d32}.result-icu .fill{background:#b45f06}.result-vent .fill{background:#187b80}.result-neuro .fill{background:#6f42c1}.duration-card{margin-top:11px;background:white}.duration-main{font-size:2rem;font-weight:900}.duration-label,.duration-range{font-weight:700;color:#425466}.small-note,.footnote,.quick-note{font-size:.84rem;color:#6b7a8c}.notice{background:#fff8e6;border:1px solid #f1d99a;border-radius:14px;padding:11px 13px;margin-bottom:13px}.details{margin-top:18px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px}.detail-grid h3{font-size:1rem;font-weight:800}@media(max-width:1199px){.sticky{position:static}.scroll{max-height:none}}@media(max-width:900px){.result-grid,.detail-grid{grid-template-columns:1fr}.hero-grid{grid-template-columns:1fr}.app{padding:12px}}
+.sticky{position:sticky;top:18px}.scroll{max-height:calc(100vh - 355px);overflow-y:auto;padding-right:5px}.mode{background:#edf4fb;border-radius:15px;padding:12px;margin-bottom:12px}.btn-primary{border-radius:13px;font-weight:750;min-height:44px}.section-title{font-weight:800}.result-section{padding:4px 0 19px;border-bottom:1px solid #edf1f5;margin-bottom:17px}.result-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.result-heading h3{font-size:1.05rem;font-weight:800}.result-heading span{font-size:.82rem;color:#6b7a8c;font-weight:650}.result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.result-card,.duration-card{border:1px solid #dbe8f5;border-radius:17px;padding:13px;background:#f9fbfd}.result-top{display:flex;justify-content:space-between;gap:10px}.result-name{font-weight:700;color:#425466}.result-pct{font-size:1.7rem;font-weight:900}.bar{height:11px;background:#e7edf5;border-radius:99px;overflow:hidden;margin-top:10px}.fill{height:100%;border-radius:99px}.result-disposition .fill{background:#1f4e79}.result-hospital .fill{background:#2f7d32}.result-icu .fill{background:#b45f06}.result-vent .fill{background:#187b80}.result-neuro .fill{background:#6f42c1}.duration-card{margin-top:11px;background:white}.duration-main{font-size:2rem;font-weight:900}.duration-label,.duration-range{font-weight:700;color:#425466}.small-note,.footnote,.quick-note,.input-hint{font-size:.84rem;color:#6b7a8c}.input-hint{margin-top:-10px;margin-bottom:10px}.notice{background:#fff8e6;border:1px solid #f1d99a;border-radius:14px;padding:11px 13px;margin-bottom:13px}.details{margin-top:18px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px}.detail-grid h3{font-size:1rem;font-weight:800}@media(max-width:1199px){.sticky{position:static}.scroll{max-height:none}}@media(max-width:900px){.result-grid,.detail-grid{grid-template-columns:1fr}.hero-grid{grid-template-columns:1fr}.app{padding:12px}}
 "
 
 ui <- page_fluid(
@@ -272,7 +327,7 @@ ui <- page_fluid(
     div(class="hero",div(class="hero-grid",
       div(if(file.exists("www/ohsu_logo.png")) img(src="ohsu_logo.png",class="logo") else strong("OHSU")),
       div(h1("TBI-TRACT: Trauma Resource and Acute Care Trajectory Calculator",class="title"),
-          p("Post-initial-evaluation prediction of disposition, resource trajectory, neurosurgical utilization, and duration",class="subtitle")))),
+          p("Early inpatient trajectory estimates for adults with traumatic brain injury after initial trauma-center evaluation and diagnostic workup",class="subtitle")))),
     layout_columns(col_widths=c(4,8),
       div(class="sticky",card(card_body(
         h2("Calculator mode",class="section-title"),
@@ -282,12 +337,19 @@ ui <- page_fluid(
         h2("Initial evaluation",class="section-title"),uiOutput("mode_note"),div(class="scroll",uiOutput("inputs")),
         actionButton("calc","Calculate trajectory",class="btn-primary w-100")))),
       card(card_body(h2("Predicted inpatient trajectory",class="section-title"),uiOutput("results"),div(class="footnote",uiOutput("result_note"))))),
-    card(class="details",card_body(h2("Model details and intended use",class="section-title"),div(class="detail-grid",
-      div(h3("Prediction time"),p("Use after the initial trauma-center evaluation and diagnostic workup, before subsequent inpatient disposition and resource utilization. Initial imaging-derived injury phenotypes may be entered.")),
-      div(h3("Outputs"),p("Disposition; HLOS, ICU and ventilation trajectories; conditional duration forecasts; invasive ICP monitoring; and craniotomy/craniectomy.")),
-      div(h3("Development"),p("Final deployment models were fit on the complete 2020–2024 development cohort after architecture was locked. Performance estimates shown in the manuscript come from rolling-origin 2022–2024 temporal evaluation; independent external validation remains pending.")),
-      div(h3("Interpretation"),p("Duration outputs are estimated 10th–90th percentile ranges, not guaranteed 80% prediction intervals. Race/ethnicity/payer are used only for disposition and categorical HLOS as social/health-system context, not as biological or causal attributes."))
-    )))
+    card(class="details",card_body(
+      h2("Clinical context, performance, and intended use",class="section-title"),
+      div(class="detail-grid",
+        div(h3("Who this model represents"),p("Developed from 755,880 direct-presenting adults aged 18–89 years with traumatic intracranial injury in ACS TQIP/TQP 2020–2024. The most recent temporal evaluation cohort contained 151,874 patients from 2024. Transfer-in patients and patients without an observable index-hospital trajectory were excluded.")),
+        div(h3("When to use it"),p("Use after the initial trauma-center evaluation and diagnostic workup, when neurologic examination, physiology, mechanism, relevant comorbidities, and initial imaging-derived injury phenotypes are available. Diagnosis-derived features reflect injuries intended to be identifiable during the initial diagnostic evaluation; registry data do not timestamp when each diagnosis was recognized.")),
+        div(h3("What it estimates"),p("Three-class discharge disposition; hospital LOS trajectory; ICU and mechanical-ventilation trajectories; continuous hospital, ICU, and ventilator-duration forecasts; EVD or intraparenchymal ICP bolt utilization; and craniotomy/craniectomy. ICU and ventilator-duration forecasts are conditional on use of that resource.")),
+        div(h3("2024 temporal performance"),p("AUROC: post-acute facility 0.785; death/hospice 0.939; any ICU 0.853; ICU ≥8 days 0.885; any ventilation 0.940; ventilation ≥8 days 0.916; hospital LOS ≥28 days 0.875; EVD/intraparenchymal ICP bolt 0.925; craniotomy/craniectomy 0.894. Calibration slopes for these headline classification outputs were approximately 0.99–1.04.")),
+        div(h3("Duration performance"),p("2024 median-prediction mean absolute error was 4.54 days for hospital LOS, 3.41 days for ICU LOS conditional on ICU use, and 4.79 days for ventilator duration conditional on ventilation. Observed coverage of the estimated Q10–Q90 ranges was 79.5%, 80.0%, and 76.8%, respectively.")),
+        div(h3("How to interpret it"),p("Predictions are risk estimates, not treatment recommendations or guarantees. Duration outputs are model-estimated 10th–90th percentile ranges rather than formal guaranteed 80% prediction intervals. Race, ethnicity, and payer are used only in disposition and categorical hospital-LOS models as social/health-system context, not as biological or causal attributes.")),
+        div(h3("Validation status"),p("Architecture and predictor policies were locked using forward-temporal development procedures. Final deployment models were fit on the full 2020–2024 cohort. Reported performance comes from rolling-origin temporal evaluation; independent external and prospective validation remain pending.")),
+        div(h3("Important limitation"),p("Use clinical judgment, especially for patient groups with case mix unlike the development population. This calculator is intended to support counseling and resource planning; it should not be used as a stand-alone basis to initiate, withhold, or withdraw treatment."))
+      )
+    ))
   )
 )
 
@@ -297,7 +359,7 @@ server <- function(input, output, session) {
   allowed <- reactive(if(mode()=="complete") all_predictors else quick_sets[[endpoint()]])
 
   output$mode_note <- renderUI(div(class="quick-note",if(mode()=="complete")
-    paste0("Complete mode displays all ",length(allowed())," inputs used across the final endpoint-specific models. Leave unavailable information unknown/blank.") else
+    paste0("Complete mode displays all ",length(allowed())," inputs used across the final endpoint-specific models. Leave unavailable information unknown/blank. Numeric entries are constrained to clinically plausible interface ranges and are rechecked before prediction.") else
     paste0("Quick preview shows ",length(allowed())," focused inputs; hidden inputs are treated as unknown/missing.")))
 
   output$inputs <- renderUI({
@@ -311,6 +373,8 @@ server <- function(input, output, session) {
   })
 
   R <- eventReactive(input$calc,{
+    input_errors <- validate_numeric_inputs(input, allowed())
+    validate(need(length(input_errors) == 0L, paste(input_errors, collapse=" ")))
     vals <- collect_values(input,allowed()); ep <- endpoint()
     disp <- function() pred_multi("discharge_3cat_final",vals)
     hlos <- function() list(trajectory=pred_multi("hlos_trajectory_final",vals),duration=pred_quantiles("hospital_los",vals))
@@ -337,7 +401,7 @@ server <- function(input, output, session) {
       if(r$ep=="hlos") return(section_ui("Hospital length of stay","Trajectory + continuous forecast",traj_duration(r$trajectory,r$duration,"result-hospital","Predicted median hospital LOS")))
       if(r$ep=="icu") return(section_ui("ICU trajectory","Trajectory + conditional duration",traj_duration(r$trajectory,r$duration,"result-icu","If ICU care occurs: predicted median ICU LOS","Duration is conditional on ICU use.")))
       if(r$ep=="ventilation") return(tagList(airway(),section_ui("Mechanical ventilation trajectory","Trajectory + conditional duration",traj_duration(r$trajectory,r$duration,"result-vent","If ventilation occurs: predicted median ventilator duration","Duration is conditional on mechanical ventilation."))))
-      return(if(r$ep=="icp") neuro_ui(r$icp,"Invasive ICP monitoring") else neuro_ui(r$craniotomy,"Craniotomy / craniectomy"))
+      return(if(r$ep=="icp") neuro_ui(r$icp,"EVD or intraparenchymal ICP bolt") else neuro_ui(r$craniotomy,"Craniotomy / craniectomy"))
     }
     tagList(airway(),
       section_ui("Discharge disposition","Mutually exclusive probabilities",prob_cards(r$disposition,"result-disposition")),
@@ -345,7 +409,7 @@ server <- function(input, output, session) {
       section_ui("ICU trajectory","Trajectory + conditional duration",traj_duration(r$icu$trajectory,r$icu$duration,"result-icu","If ICU care occurs: predicted median ICU LOS","Duration is conditional on ICU use.")),
       section_ui("Mechanical ventilation trajectory","Trajectory + conditional duration",traj_duration(r$ventilation$trajectory,r$ventilation$duration,"result-vent","If ventilation occurs: predicted median ventilator duration","Duration is conditional on mechanical ventilation.")),
       section_ui("Neurosurgical resource utilization","Independent probability estimates",div(class="result-grid",
-        div(class="result-card result-neuro",div(class="result-top",span(class="result-name","Invasive ICP monitoring"),span(class="result-pct",fmt_prob(r$icp))),div(class="bar",div(class="fill",style=paste0("width:",100*r$icp,"%;")))),
+        div(class="result-card result-neuro",div(class="result-top",span(class="result-name","EVD or intraparenchymal ICP bolt"),span(class="result-pct",fmt_prob(r$icp))),div(class="bar",div(class="fill",style=paste0("width:",100*r$icp,"%;"))))),
         div(class="result-card result-neuro",div(class="result-top",span(class="result-name","Craniotomy / craniectomy"),span(class="result-pct",fmt_prob(r$craniotomy))),div(class="bar",div(class="fill",style=paste0("width:",100*r$craniotomy,"%;"))))))
     )
   })
