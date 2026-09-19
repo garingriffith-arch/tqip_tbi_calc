@@ -164,42 +164,69 @@ gcs_choices <- list(
   )
 )
 
-make_control <- function(v) {
+make_control <- function(v, cached = NULL) {
   id <- input_id(v)
   lab <- label_for(v)
 
+  cached_chr <- if (!is.null(cached) && length(cached)) {
+    as.character(cached[[1L]])
+  } else {
+    NA_character_
+  }
+
   if (v %in% names(gcs_choices)) {
+    valid <- unname(gcs_choices[[v]])
+    selected <- if (!is.na(cached_chr) && cached_chr %in% valid) {
+      cached_chr
+    } else {
+      ""
+    }
+
     return(selectInput(
       id,
       lab,
       gcs_choices[[v]],
-      selected = "",
+      selected = selected,
       selectize = FALSE
     ))
   }
 
   if (v %in% binary_predictors) {
+    choices <- c(
+      "No" = "0",
+      "Yes" = "1",
+      "Unknown / not recorded" = ""
+    )
+    selected <- if (!is.na(cached_chr) && cached_chr %in% unname(choices)) {
+      cached_chr
+    } else {
+      ""
+    }
+
     return(selectInput(
       id,
       lab,
-      c(
-        "No" = "0",
-        "Yes" = "1",
-        "Unknown / not recorded" = ""
-      ),
-      selected = "",
+      choices,
+      selected = selected,
       selectize = FALSE
     ))
   }
 
   if (v %in% continuous_predictors) {
+    cached_num <- if (!is.null(cached) && length(cached)) {
+      suppressWarnings(as.numeric(cached[[1L]]))
+    } else {
+      NA_real_
+    }
+    value <- if (is.finite(cached_num)) cached_num else NA_real_
+
     lim <- numeric_limits[[v]]
     if (!is.null(lim)) {
       return(tagList(
         shiny::numericInput(
           id,
           lab,
-          value = NA,
+          value = value,
           min = lim$min,
           max = lim$max,
           step = lim$step
@@ -207,7 +234,7 @@ make_control <- function(v) {
         div(class = "input-hint", lim$note)
       ))
     }
-    return(shiny::numericInput(id, lab, value = NA))
+    return(shiny::numericInput(id, lab, value = value))
   }
 
   if (v %in% categorical_predictors) {
@@ -217,7 +244,7 @@ make_control <- function(v) {
     choices <- ordered_categorical_choices(v, lev)
     vals <- unname(choices)
 
-    selected <- if ("__UNKNOWN__" %in% vals) {
+    default_selected <- if ("__UNKNOWN__" %in% vals) {
       "__UNKNOWN__"
     } else {
       unknown_idx <- which(
@@ -228,6 +255,12 @@ make_control <- function(v) {
         )
       )
       if (length(unknown_idx)) vals[unknown_idx[1L]] else vals[1L]
+    }
+
+    selected <- if (!is.na(cached_chr) && cached_chr %in% vals) {
+      cached_chr
+    } else {
+      default_selected
     }
 
     return(selectInput(
