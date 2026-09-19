@@ -328,38 +328,65 @@ gcs_choices <- list(
   )
 )
 
-make_control <- function(v) {
+make_control <- function(v, cached = NULL) {
   id <- input_id(v)
   lab <- label_for(v)
 
+  cached_chr <- if (!is.null(cached) && length(cached)) {
+    as.character(cached[[1L]])
+  } else {
+    NA_character_
+  }
+
   if (v %in% names(gcs_choices)) {
+    valid <- unname(gcs_choices[[v]])
+    selected <- if (!is.na(cached_chr) && cached_chr %in% valid) {
+      cached_chr
+    } else {
+      ""
+    }
+
     return(selectInput(
-      id, lab, gcs_choices[[v]], selected = "", selectize = FALSE
+      id, lab, gcs_choices[[v]], selected = selected, selectize = FALSE
     ))
   }
 
   if (v %in% binary_predictors) {
+    choices <- c("Unknown / not recorded" = "", "No" = "0", "Yes" = "1")
+    selected <- if (!is.na(cached_chr) && cached_chr %in% unname(choices)) {
+      cached_chr
+    } else {
+      ""
+    }
+
     return(selectInput(
       id,
       lab,
-      c("Unknown / not recorded" = "", "No" = "0", "Yes" = "1"),
-      selected = "",
+      choices,
+      selected = selected,
       selectize = FALSE
     ))
   }
 
   if (v %in% continuous_predictors) {
+    cached_num <- if (!is.null(cached) && length(cached)) {
+      suppressWarnings(as.numeric(cached[[1L]]))
+    } else {
+      NA_real_
+    }
+    value <- if (is.finite(cached_num)) cached_num else NA_real_
+
     lim <- numeric_limits[[v]]
     if (!is.null(lim)) {
       return(tagList(
         numberInput(
-          id, lab, value = NA,
+          id, lab, value = value,
           min = lim$min, max = lim$max, step = lim$step
         ),
         div(class = "input-hint", lim$note)
       ))
     }
-    return(numberInput(id, lab, value = NA))
+    return(numberInput(id, lab, value = value))
   }
 
   if (v %in% categorical_predictors) {
@@ -368,12 +395,19 @@ make_control <- function(v) {
 
     choices <- clean_choices(lev)
     vals <- unname(choices)
-    selected <- if ("__UNKNOWN__" %in% vals) {
+
+    default_selected <- if ("__UNKNOWN__" %in% vals) {
       "__UNKNOWN__"
     } else if (any(tolower(vals) == "unknown")) {
       vals[which(tolower(vals) == "unknown")[1L]]
     } else {
       vals[1L]
+    }
+
+    selected <- if (!is.na(cached_chr) && cached_chr %in% vals) {
+      cached_chr
+    } else {
+      default_selected
     }
 
     return(selectInput(
@@ -893,6 +927,31 @@ ui <- page_fluid(
 server <- function(input, output, session) {
   mode <- reactive(input$mode %||% "complete")
   endpoint <- reactive(input$endpoint %||% "craniotomy")
+
+  # Preserve clinician-entered values when dynamic controls are rebuilt after
+  # switching calculator mode or quick-preview endpoint. This cache is scoped
+  # to the current Shiny session and does not alter model preprocessing.
+  input_cache <- reactiveValues()
+
+  lapply(all_predictors, function(v) {
+    local({
+      var <- v
+      id <- input_id(var)
+
+      observeEvent(
+        input[[id]],
+        {
+          value <- input[[id]]
+          if (!is.null(value) && length(value)) {
+            input_cache[[var]] <- value
+          }
+        },
+        ignoreNULL = TRUE,
+        priority = 100
+      )
+    })
+  })
+
   allowed <- reactive({
     if (mode() == "complete") {
       all_predictors
@@ -909,7 +968,8 @@ server <- function(input, output, session) {
           "Complete mode displays all ", length(allowed()),
           " inputs used across the final endpoint-specific models. Leave unavailable ",
           "information unknown/blank. Numeric entries are constrained to clinically ",
-          "plausible interface ranges and are rechecked before prediction."
+          "plausible interface ranges and are rechecked before prediction. Values entered ",
+          "in either calculator mode are preserved when switching modes."
         )
       )
     } else {
@@ -917,7 +977,8 @@ server <- function(input, output, session) {
         class = "quick-note",
         paste0(
           "Quick preview shows ", length(allowed()),
-          " focused inputs; hidden inputs are treated as unknown/missing."
+          " focused inputs; hidden inputs are treated as unknown/missing. Values already ",
+          "entered in complete mode or another quick endpoint are preserved for this session."
         )
       )
     }
@@ -930,9 +991,14 @@ server <- function(input, output, session) {
       vars <- intersect(groups[[g]], a)
       if (!length(vars)) return(NULL)
 
+      controls <- lapply(
+        vars,
+        function(v) make_control(v, isolate(input_cache[[v]]))
+      )
+
       do.call(
         accordion_panel,
-        c(list(title = g), lapply(vars, make_control))
+        c(list(title = g), controls)
       )
     })
 
